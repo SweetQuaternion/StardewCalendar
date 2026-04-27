@@ -11,7 +11,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 20,
     yield: 1,
     color: "#f0d878",
-    imageFile: "parsnip.png",
+    imageFile: "Parsnip.png",
   },
   {
     id: "strawberry",
@@ -23,7 +23,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 100,
     yield: 1,
     color: "#e85555",
-    imageFile: "strawberry.png",
+    imageFile: "Strawberry.png",
   },
   {
     id: "cauliflower",
@@ -35,7 +35,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 80,
     yield: 1,
     color: "#f0f0d0",
-    imageFile: "cauliflower.png",
+    imageFile: "Cauliflower.png",
   },
   {
     id: "potato",
@@ -47,11 +47,11 @@ export const PLANTS: Plant[] = [
     seedPrice: 50,
     yield: 1,
     color: "#d4b870",
-    imageFile: "potato.png",
+    imageFile: "Potato.png",
   },
   {
     id: "kale",
-    name: "Kohl",
+    name: "Grünkohl",
     seasons: ["spring"],
     growDays: 6,
     regrowDays: null,
@@ -59,7 +59,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 70,
     yield: 1,
     color: "#78c878",
-    imageFile: "kale.png",
+    imageFile: "Kale.png",
   },
   {
     id: "tulip",
@@ -71,7 +71,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 20,
     yield: 1,
     color: "#e878a8",
-    imageFile: "tulip.png",
+    imageFile: "Tulip.png",
   },
   {
     id: "bluejazz",
@@ -83,7 +83,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 30,
     yield: 1,
     color: "#88a8e8",
-    imageFile: "bluejazz.png",
+    imageFile: "Blue_Jazz.png",
   },
   {
     id: "coffee",
@@ -95,7 +95,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 2500,
     yield: 4,
     color: "#7a5030",
-    imageFile: "coffee.png",
+    imageFile: "Coffee_Bean.png",
   },
 
   {
@@ -108,7 +108,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 80,
     yield: 1,
     color: "#98d858",
-    imageFile: "melon.png",
+    imageFile: "Melon.png",
   },
   {
     id: "tomato",
@@ -120,7 +120,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 50,
     yield: 1,
     color: "#e05030",
-    imageFile: "tomato.png",
+    imageFile: "Tomato.png",
   },
   {
     id: "blueberry",
@@ -132,7 +132,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 80,
     yield: 3,
     color: "#6868c8",
-    imageFile: "blueberry.png",
+    imageFile: "Blueberry.png",
   },
   {
     id: "hotpepper",
@@ -144,7 +144,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 40,
     yield: 1,
     color: "#e84020",
-    imageFile: "hotpepper.png",
+    imageFile: "Hot_Pepper.png",
   },
   {
     id: "radish",
@@ -156,7 +156,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 40,
     yield: 1,
     color: "#e068a0",
-    imageFile: "radish.png",
+    imageFile: "Radish.png",
   },
   {
     id: "redcabbage",
@@ -168,7 +168,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 100,
     yield: 1,
     color: "#9840a0",
-    imageFile: "redcabbage.png",
+    imageFile: "Red_Cabbage.png",
   },
   {
     id: "starfruit",
@@ -180,7 +180,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 400,
     yield: 1,
     color: "#f0e840",
-    imageFile: "starfruit.png",
+    imageFile: "Starfruit.png",
   },
   {
     id: "corn",
@@ -192,7 +192,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 150,
     yield: 1,
     color: "#f0c830",
-    imageFile: "corn.png",
+    imageFile: "Corn.png",
   },
 
   {
@@ -205,7 +205,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 100,
     yield: 1,
     color: "#e87820",
-    imageFile: "pumpkin.png",
+    imageFile: "Pumpkin.png",
   },
   {
     id: "yam",
@@ -217,7 +217,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 60,
     yield: 1,
     color: "#c06840",
-    imageFile: "yam.png",
+    imageFile: "Yam.png",
   },
   {
     id: "cranberry",
@@ -229,7 +229,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 240,
     yield: 2,
     color: "#c83050",
-    imageFile: "cranberry.png",
+    imageFile: "Cranberries.png",
   },
   {
     id: "artichoke",
@@ -241,7 +241,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 30,
     yield: 1,
     color: "#80a040",
-    imageFile: "artichoke.png",
+    imageFile: "Artichoke.png",
   },
   {
     id: "grape",
@@ -253,7 +253,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 60,
     yield: 1,
     color: "#9858c0",
-    imageFile: "grape.png",
+    imageFile: "Grape.png",
   },
   {
     id: "eggplant",
@@ -265,7 +265,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 20,
     yield: 1,
     color: "#7030a0",
-    imageFile: "eggplant.png",
+    imageFile: "Eggplant.png",
   },
   {
     id: "amaranth",
@@ -277,7 +277,7 @@ export const PLANTS: Plant[] = [
     seedPrice: 70,
     yield: 1,
     color: "#c060c0",
-    imageFile: "amaranth.png",
+    imageFile: "Amaranth.png",
   },
   {
     id: "bok_choy",
@@ -289,11 +289,11 @@ export const PLANTS: Plant[] = [
     seedPrice: 50,
     yield: 1,
     color: "#70c870",
-    imageFile: "bok_choy.png",
+    imageFile: "Bok_Choy.png",
   },
 
   {
-    id: "crystalfruit",
+    id: "powdermelon",
     name: "Pulvermelone",
     seasons: ["winter"],
     growDays: 7,
@@ -302,6 +302,6 @@ export const PLANTS: Plant[] = [
     seedPrice: 30,
     yield: 1,
     color: "#c0e0f8",
-    imageFile: "crystalfruit.png",
+    imageFile: "Powdermelon.png",
   },
 ];

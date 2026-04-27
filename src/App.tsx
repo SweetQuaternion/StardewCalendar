@@ -1,4 +1,12 @@
+import { useState } from "react";
+
+import { PlantList } from "./components/PlantList.tsx";
+import { SeasonSelector } from "./components/SeasonSelector.tsx";
+import type { SeasonId } from "./data/types.ts";
+
 export default function App() {
+  const [selectedSeason, setSelectedSeason] = useState<SeasonId>("spring");
+
   return (
     <div className="app-root">
       <header className="app-header">
@@ -8,9 +16,8 @@ export default function App() {
 
       <div className="app-body">
         <aside className="sidebar">
-          <div className="placeholder">Season selector (placeholder)</div>
-          <div className="spacer-sm" />
-          <div className="placeholder">Pflanzenliste (placeholder)</div>
+          <SeasonSelector selectedSeason={selectedSeason} onSeasonChange={setSelectedSeason} />
+          <PlantList selectedSeason={selectedSeason} />
         </aside>
 
         <main className="main-area">

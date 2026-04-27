@@ -1,0 +1,40 @@
+.season-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.season-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.55em;
+  padding: 0.55em 0.7em;
+  border: 0.0625em solid var(--color-border);
+  background: var(--color-panel);
+  color: var(--color-text);
+  border-radius: 0.4em;
+  font-family: inherit;
+  font-size: 0.95em;
+  cursor: pointer;
+}
+
+.season-button:hover {
+  background: color-mix(in srgb, var(--color-accent) 20%, var(--color-panel));
+}
+
+.season-button.active {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-text);
+  font-weight: 600;
+}
+
+.season-button-emoji {
+  font-size: 1em;
+}
+
+.season-button-label {
+  line-height: 1.2;
+}

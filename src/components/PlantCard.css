@@ -1,0 +1,157 @@
+.plant-card {
+  --plant-color: var(--color-accent2);
+
+  border: 0.0625em solid var(--color-border);
+  border-left: 0.25em solid var(--plant-color);
+  border-radius: 0.4em;
+  background: var(--color-panel);
+  padding: 0.6em 0.65em;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6em;
+  cursor: grab;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.plant-card:hover {
+  transform: translateY(-0.1em);
+  box-shadow: 0 0.25em 0.55em rgba(0, 0, 0, 0.12);
+}
+
+.plant-card:active {
+  cursor: grabbing;
+}
+
+.plant-card-image {
+  height: 1.8em;
+  min-width: 1.8em;
+  width: auto;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.plant-card-content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25em;
+}
+
+.plant-card-name {
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plant-card-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.8em;
+  width: 100%;
+}
+
+.plant-card-growth,
+.plant-card-price {
+  font-size: 0.88em;
+  color: var(--color-text-light);
+  line-height: 1.2;
+}
+
+.plant-card-growth {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plant-card-price {
+  white-space: nowrap;
+}
+
+.plant-color-parsnip {
+  --plant-color: #f0d878;
+}
+.plant-color-strawberry {
+  --plant-color: #e85555;
+}
+.plant-color-cauliflower {
+  --plant-color: #f0f0d0;
+}
+.plant-color-potato {
+  --plant-color: #d4b870;
+}
+.plant-color-kale {
+  --plant-color: #78c878;
+}
+.plant-color-tulip {
+  --plant-color: #e878a8;
+}
+.plant-color-bluejazz {
+  --plant-color: #88a8e8;
+}
+.plant-color-coffee {
+  --plant-color: #7a5030;
+}
+
+.plant-color-melon {
+  --plant-color: #98d858;
+}
+.plant-color-tomato {
+  --plant-color: #e05030;
+}
+.plant-color-blueberry {
+  --plant-color: #6868c8;
+}
+.plant-color-hotpepper {
+  --plant-color: #e84020;
+}
+.plant-color-radish {
+  --plant-color: #e068a0;
+}
+.plant-color-redcabbage {
+  --plant-color: #9840a0;
+}
+.plant-color-starfruit {
+  --plant-color: #f0e840;
+}
+.plant-color-corn {
+  --plant-color: #f0c830;
+}
+
+.plant-color-pumpkin {
+  --plant-color: #e87820;
+}
+.plant-color-yam {
+  --plant-color: #c06840;
+}
+.plant-color-cranberry {
+  --plant-color: #c83050;
+}
+.plant-color-artichoke {
+  --plant-color: #80a040;
+}
+.plant-color-grape {
+  --plant-color: #9858c0;
+}
+.plant-color-eggplant {
+  --plant-color: #7030a0;
+}
+.plant-color-amaranth {
+  --plant-color: #c060c0;
+}
+.plant-color-bok_choy {
+  --plant-color: #70c870;
+}
+
+.plant-color-crystalfruit {
+  --plant-color: #c0e0f8;
+}

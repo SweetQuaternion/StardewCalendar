@@ -1,0 +1,24 @@
+.plant-list {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin-top: 1.5em;
+}
+
+.plant-list-title {
+  font-size: 1.05em;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.55em;
+}
+
+.plant-list-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding-right: 0.15em;
+}

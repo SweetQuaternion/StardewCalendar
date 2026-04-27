@@ -55,10 +55,13 @@ body {
 .sidebar {
   width: 21em;
   min-width: 21em;
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--color-sidebar);
   border-right: 0.0625em solid var(--color-border);
   padding: 0.75em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
 }
 .main-area {
   flex: 1;
