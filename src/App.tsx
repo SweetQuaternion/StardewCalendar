@@ -1,5 +1,3 @@
-import React from "react";
-
 export default function App() {
   return (
     <div className="app-root">
@@ -11,21 +9,17 @@ export default function App() {
       <div className="app-body">
         <aside className="sidebar">
           <div className="placeholder">Season selector (placeholder)</div>
-          <div style={{ height: "0.75em" }} />
+          <div className="spacer-sm" />
           <div className="placeholder">Pflanzenliste (placeholder)</div>
         </aside>
 
         <main className="main-area">
           <section className="bed-panel">
-            <div style={{ flex: 1 }} className="placeholder">
-              Beet-Kalender (placeholder)
-            </div>
-            <div style={{ width: "16em", minWidth: "16em" }} className="placeholder">
-              Beet-Info (placeholder)
-            </div>
+            <div className="placeholder bed-calendar-placeholder">Beet-Kalender (placeholder)</div>
+            <div className="placeholder bed-info-placeholder">Beet-Info (placeholder)</div>
           </section>
           <section className="map-area">
-            <div className="center" style={{ height: "100%" }}>
+            <div className="center full-height">
               <div className="placeholder">Karte: Klicke und ziehe, um ein Beet anzulegen 🌱</div>
             </div>
           </section>
