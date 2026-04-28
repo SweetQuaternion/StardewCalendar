@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import type { Bed } from "../data/types";
-import { bedsOverlap } from "../utils/calculations";
+import type { Bed, Plant, SeasonId } from "../data/types";
+import { bedsOverlap, isCarryover, prevSeason } from "../utils/calculations";
 import "./FarmMap.css";
 
 interface Props {
@@ -11,6 +11,9 @@ interface Props {
   onBedRename: (bedId: string) => void;
   onBedDelete: (bedId: string) => void;
   selectedBedId: string | null;
+  currentSeason: SeasonId;
+  bedsFromPrevSeason: Bed[];
+  plants: Plant[];
 }
 
 const CELL_SIZE = 2; // em
@@ -22,6 +25,9 @@ export default function FarmMap({
   onBedRename,
   onBedDelete,
   selectedBedId,
+  currentSeason,
+  bedsFromPrevSeason,
+  plants,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -46,6 +52,31 @@ export default function FarmMap({
   const getCellSizePx = () => {
     const rootFontSize = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
     return CELL_SIZE * rootFontSize;
+  };
+
+  /**
+   * Prüfe ob ein Beet ein Carry-over aus der Vorsaison ist
+   */
+  const getCarryoverInfo = (bedId: string): { plant: Plant; prevSeasonLabel: string } | null => {
+    const prevBed = bedsFromPrevSeason.find((b) => b.id === bedId);
+    if (!prevBed || prevBed.plantings.length === 0) return null;
+
+    const lastPlanting = prevBed.plantings[prevBed.plantings.length - 1];
+    const plant = plants.find((p) => p.id === lastPlanting.plantId);
+    if (!plant) return null;
+
+    if (isCarryover(plant, currentSeason)) {
+      const prevSeas = prevSeason(currentSeason);
+      const seasonLabel = {
+        spring: "Frühling",
+        summer: "Sommer",
+        fall: "Herbst",
+        winter: "Winter",
+      }[prevSeas];
+      return { plant, prevSeasonLabel: seasonLabel };
+    }
+
+    return null;
   };
 
   const getGridBounds = () => {
@@ -110,6 +141,8 @@ export default function FarmMap({
       onBedSelect(clickedBed.id);
       return;
     }
+
+    onBedSelect(null);
 
     setDragging(true);
     setStartX(x);
@@ -203,22 +236,58 @@ export default function FarmMap({
         )}
 
         {/* Beete */}
-        {beds.map((bed) => (
-          <div
-            key={bed.id}
-            className={`farm-bed ${selectedBedId === bed.id ? "selected" : ""}`}
-            style={{
-              left: `${gridToPixel(bed.x)}px`,
-              top: `${gridToPixel(bed.y)}px`,
-              width: `${gridToPixel(bed.width)}px`,
-              height: `${gridToPixel(bed.height)}px`,
-            }}
-            onClick={() => onBedSelect(bed.id)}
-            onContextMenu={(e) => handleRightClick(e, bed.id)}
-          >
-            <span className="farm-bed-name">{bed.name}</span>
-          </div>
-        ))}
+        {beds.map((bed) => {
+          const carryoverInfo = getCarryoverInfo(bed.id);
+          const bedPlants = bed.plantings
+            .map((planting) => plants.find((plant) => plant.id === planting.plantId))
+            .filter((plant): plant is Plant => Boolean(plant));
+          const rawDisplayPlants = carryoverInfo ? [carryoverInfo.plant] : bedPlants;
+          const seenPlantIds = new Set<string>();
+          const displayPlants = rawDisplayPlants.filter((plant) => {
+            if (seenPlantIds.has(plant.id)) return false;
+            seenPlantIds.add(plant.id);
+            return true;
+          });
+          const tooltipText = carryoverInfo
+            ? `🌽 ${carryoverInfo.plant.name} wächst noch (aus ${carryoverInfo.prevSeasonLabel})`
+            : displayPlants.length > 0
+              ? `${bed.name} · ${displayPlants.map((plant) => plant.name).join(", ")}`
+              : bed.name;
+
+          return (
+            <div
+              key={bed.id}
+              className={`farm-bed ${selectedBedId === bed.id ? "selected" : ""} ${carryoverInfo ? "carryover" : ""}`}
+              style={{
+                left: `${gridToPixel(bed.x)}px`,
+                top: `${gridToPixel(bed.y)}px`,
+                width: `${gridToPixel(bed.width)}px`,
+                height: `${gridToPixel(bed.height)}px`,
+              }}
+              onClick={() => onBedSelect(bed.id)}
+              onContextMenu={(e) => {
+                if (!carryoverInfo) {
+                  handleRightClick(e, bed.id);
+                }
+              }}
+              title={tooltipText}
+            >
+              <span className="farm-bed-name">{bed.name}</span>
+              {displayPlants.length > 0 && (
+                <div className="farm-bed-plant-icons" aria-hidden="true">
+                  {displayPlants.map((plant) => (
+                    <img
+                      key={plant.id}
+                      className="farm-bed-plant-icon"
+                      src={`/plants/${plant.imageFile}`}
+                      alt=""
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {/* Leerer Zustand */}
         {beds.length === 0 && !dragging && (

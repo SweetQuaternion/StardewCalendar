@@ -51,6 +51,7 @@
   transition: all 0.15s ease;
   box-sizing: border-box;
   box-shadow: 0 0.1em 0.25em rgba(0, 0, 0, 0.08);
+  overflow: hidden;
 }
 
 .farm-bed:hover {
@@ -65,14 +66,76 @@
     0 0.15em 0.35em rgba(0, 0, 0, 0.12);
 }
 
+.farm-bed.carryover:hover {
+  filter: brightness(0.98);
+}
+
 .farm-bed-name {
-  font-size: 0.7em;
-  font-weight: 500;
+  position: absolute;
+  left: 0.2em;
+  right: 0.2em;
+  top: 0.15em;
+  z-index: 2;
+  font-size: 0.65em;
+  font-weight: 600;
   color: var(--color-text);
   text-align: center;
   word-break: break-word;
-  padding: 0.25em;
-  max-width: 100%;
+  padding: 0.12em 0.2em;
+  border-radius: 0.25em;
+  background: rgba(255, 255, 255, 0.55);
+  line-height: 1.05;
+  pointer-events: none;
+}
+
+.farm-bed-plant-icons {
+  position: absolute;
+  top: 1.35em;
+  left: 0.18em;
+  right: 0.18em;
+  bottom: 0.18em;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.12em;
+  align-items: flex-start;
+  justify-content: flex-start;
+  align-content: flex-start;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.farm-bed-plant-icon {
+  width: 1.35em;
+  height: 1.35em;
+  border-radius: 0.2em;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  box-sizing: border-box;
+  object-fit: cover;
+  opacity: 0.62;
+  filter: saturate(0.9);
+}
+
+/* Carry-over Overlay */
+.farm-bed-carryover-overlay {
+  position: absolute;
+  top: 0.18em;
+  right: 0.18em;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.farm-bed-carryover-badge {
+  font-size: 0.65em;
+  font-weight: 600;
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.8);
+  border: 0.05em solid var(--color-accent);
+  padding: 0.3em 0.5em;
+  border-radius: 0.25em;
+  white-space: nowrap;
 }
 
 /* Leerer Zustand */

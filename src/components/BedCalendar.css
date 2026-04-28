@@ -1,0 +1,290 @@
+.bed-calendar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow-y: auto;
+  padding: 0.75em;
+  background: var(--color-panel);
+}
+
+.bed-calendar-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-light);
+  font-size: 0.95em;
+  text-align: center;
+  width: 100%;
+}
+
+.bed-calendar-wrapper {
+  position: relative;
+  width: auto;
+}
+
+/* Kalender */
+.bed-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  background: white;
+  border: 0.06em solid var(--color-border);
+  border-radius: 0.4em;
+  padding: 0.5em;
+  box-shadow: 0 0.1em 0.3em rgba(0, 0, 0, 0.04);
+}
+
+/* Header mit Wochentagen */
+.bed-calendar-header {
+  display: grid;
+  grid-template-columns: repeat(7, 3em);
+  gap: 0.25em;
+  margin-bottom: 0.25em;
+  padding-bottom: 0.5em;
+  border-bottom: 0.125em solid var(--color-border);
+  justify-content: center;
+}
+
+.bed-calendar-weekday {
+  width: 3em;
+  height: 2.2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-align: center;
+}
+
+/* Kalender-Grid */
+.bed-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 3em);
+  gap: 0.3em;
+}
+
+/* Einzelne Tage */
+.bed-calendar-day {
+  width: 3em;
+  height: 3em;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0.3em;
+  border: 0.06em solid var(--color-border);
+  border-radius: 0.3em;
+  background: var(--color-bg);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.bed-calendar-day:hover {
+  background: var(--color-panel);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 0.06em rgba(143, 173, 110, 0.2);
+}
+
+/* Drag-over State */
+.bed-calendar-day.drag-over {
+  background: rgba(143, 173, 110, 0.15);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 0.08em rgba(143, 173, 110, 0.3);
+}
+
+/* Pflanzungs-Tage */
+.bed-calendar-day.planted {
+  cursor: default;
+  border-color: rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.1em;
+  color: white;
+  text-shadow: 0 0.05em 0.15em rgba(0, 0, 0, 0.3);
+}
+
+.bed-calendar-day.planted:hover {
+  filter: brightness(0.95);
+  box-shadow: 0 0 0.2em rgba(0, 0, 0, 0.2);
+}
+
+/* Erntetag - hervorgehoben */
+.bed-calendar-day.harvest-day {
+  border: 0.08em solid rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0.3em rgba(0, 0, 0, 0.15);
+}
+
+.bed-calendar-day-number {
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--color-text-light);
+  line-height: 1;
+}
+
+.bed-calendar-day.planted .bed-calendar-day-number {
+  color: white;
+  text-shadow: 0 0.05em 0.1em rgba(0, 0, 0, 0.3);
+  font-size: 0.75em;
+}
+
+.bed-calendar-harvest-icon {
+  font-size: 1.2em;
+  line-height: 1;
+  display: block;
+}
+
+.bed-calendar-day-plant-icon {
+  width: 0.95em;
+  height: 0.95em;
+  object-fit: cover;
+  border-radius: 0.2em;
+  opacity: 0.8;
+  box-shadow: 0 0.05em 0.15em rgba(0, 0, 0, 0.2);
+}
+
+.bed-calendar-day-faded-plant-icon {
+  width: 1.2em;
+  height: 1.2em;
+  object-fit: cover;
+  border-radius: 0.15em;
+  opacity: 0.3;
+  filter: saturate(0.6);
+}
+
+/* Carry-over Overlay */
+.bed-calendar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.5);
+  border: 0.06em solid rgba(143, 173, 110, 0.3);
+  border-radius: 0.4em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75em;
+  backdrop-filter: blur(0.5px);
+  pointer-events: none;
+}
+
+.bed-calendar-overlay-badge {
+  background: #ffffffd0;
+  border: 0.06em solid var(--color-accent);
+  border-radius: 0.3em;
+  margin-top: 2em;
+  padding: 0.5em 0.75em;
+  font-size: 0.85em;
+  color: var(--color-text);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Bestätigungs-Dialog */
+.bed-calendar-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.bed-calendar-dialog {
+  background: var(--color-panel);
+  border: 0.06em solid var(--color-border);
+  border-radius: 0.6em;
+  box-shadow: 0 0.8em 2em rgba(0, 0, 0, 0.15);
+  padding: 1.5em;
+  max-width: 20em;
+  text-align: center;
+}
+
+.bed-calendar-dialog p {
+  color: var(--color-text);
+  margin-bottom: 1.2em;
+  font-size: 1em;
+}
+
+.bed-calendar-dialog-buttons {
+  display: flex;
+  gap: 0.75em;
+  justify-content: center;
+}
+
+.bed-calendar-dialog-cancel,
+.bed-calendar-dialog-confirm {
+  padding: 0.5em 1.2em;
+  border: 0.06em solid var(--color-border);
+  border-radius: 0.45em;
+  font-family: inherit;
+  font-size: 0.95em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter 0.1s ease;
+}
+
+.bed-calendar-dialog-cancel {
+  background: white;
+  color: var(--color-text);
+}
+
+.bed-calendar-dialog-cancel:hover {
+  filter: brightness(0.97);
+}
+
+.bed-calendar-dialog-confirm {
+  background: var(--color-accent);
+  color: white;
+  border-color: var(--color-accent);
+}
+
+.bed-calendar-dialog-confirm:hover {
+  filter: brightness(0.95);
+}
+
+/* Context Menu */
+.bed-calendar-context-menu {
+  position: fixed;
+  background: var(--color-panel);
+  border: 0.06em solid var(--color-border);
+  border-radius: 0.6em;
+  box-shadow: 0 0.4em 1.2em rgba(0, 0, 0, 0.06);
+  z-index: 1000;
+  overflow: visible;
+  min-width: 10em;
+  padding: 0.5em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.bed-calendar-context-item {
+  display: block;
+  width: 100%;
+  padding: 0.45em 0.9em;
+  border: 0.06em solid var(--color-border);
+  border-radius: 0.45em;
+  background: white;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95em;
+  transition: filter 0.1s ease;
+}
+
+.bed-calendar-context-item:hover {
+  filter: brightness(0.97);
+}
+
+.bed-calendar-context-item.bed-calendar-context-delete {
+  background: #f7d0d0;
+  border-color: rgba(0, 0, 0, 0.03);
+}

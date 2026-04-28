@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { PlantList } from "./components/PlantList.tsx";
 import { SeasonSelector } from "./components/SeasonSelector.tsx";
 import FarmMap from "./components/FarmMap";
 import BedDialog from "./components/BedDialog.tsx";
+import BedCalendar from "./components/BedCalendar.tsx";
 import useLocalStorage from "./hooks/useLocalStorage.ts";
+import { PLANTS } from "./data/plants.ts";
+import { prevSeason } from "./utils/calculations.ts";
 import type { SeasonId, Bed } from "./data/types.ts";
 
 type DialogMode = "create" | "rename" | "delete" | "action" | "collision";
@@ -12,6 +15,7 @@ type DialogMode = "create" | "rename" | "delete" | "action" | "collision";
 export default function App() {
   const [selectedSeason, setSelectedSeason] = useState<SeasonId>("spring");
   const [selectedBedId, setSelectedBedId] = useState<string | null>(null);
+  const seasonOrder: SeasonId[] = ["spring", "summer", "fall", "winter"];
 
   // Beete pro Saison in localStorage
   const [bedsSpring, setBedsSpring] = useLocalStorage<Bed[]>("sdv-beds-spring", []);
@@ -49,6 +53,32 @@ export default function App() {
   };
 
   /**
+   * Normalisiere alte Beete-Struktur zu neuer Struktur
+   */
+  const normalizeBed = (bed: any): Bed => {
+    // Falls noch alte Struktur mit 'planting' statt 'plantings'
+    if (!bed.plantings && bed.planting !== undefined) {
+      return {
+        ...bed,
+        plantings: bed.planting ? [bed.planting] : [],
+      };
+    }
+    // Falls plantings undefined ist (sollte nicht vorkommen, aber sicher ist sicher)
+    if (!bed.plantings) {
+      return {
+        ...bed,
+        plantings: [],
+      };
+    }
+    return bed;
+  };
+
+  const stripPlantings = (bed: Bed): Bed => ({
+    ...bed,
+    plantings: [],
+  });
+
+  /**
    * Setze Beete für aktuelle Saison
    */
   const setCurrentSeasonBeds = (beds: Bed[]) => {
@@ -68,7 +98,52 @@ export default function App() {
     }
   };
 
-  const currentBeds = getCurrentSeasonBeds();
+  const setBedLayoutsForAllSeasons = (updater: (beds: Bed[]) => Bed[]) => {
+    setBedsSpring(updater(bedsSpring.map(normalizeBed)));
+    setBedsSummer(updater(bedsSummer.map(normalizeBed)));
+    setBedsFall(updater(bedsFall.map(normalizeBed)));
+    setBedsWinter(updater(bedsWinter.map(normalizeBed)));
+  };
+
+  const getBedLayoutsForSeason = (season: SeasonId): Bed[] => {
+    return getBedsForSeason(season).map(normalizeBed).map(stripPlantings);
+  };
+
+  const currentBeds = getCurrentSeasonBeds().map(normalizeBed);
+
+  /**
+   * Hole Beete für eine bestimmte Saison
+   */
+  const getBedsForSeason = (season: SeasonId): Bed[] => {
+    switch (season) {
+      case "spring":
+        return bedsSpring;
+      case "summer":
+        return bedsSummer;
+      case "fall":
+        return bedsFall;
+      case "winter":
+        return bedsWinter;
+      default:
+        return [];
+    }
+  };
+
+  const prevSeasonBeds = getBedsForSeason(prevSeason(selectedSeason)).map(normalizeBed);
+  const selectedBed = currentBeds.find((b) => b.id === selectedBedId) || null;
+
+  useEffect(() => {
+    const currentSeasonBeds = getCurrentSeasonBeds().map(normalizeBed);
+    if (currentSeasonBeds.length > 0) return;
+
+    const sourceSeason = seasonOrder.find((season) => getBedsForSeason(season).length > 0);
+    if (!sourceSeason) return;
+
+    const sourceLayouts = getBedLayoutsForSeason(sourceSeason);
+    if (sourceLayouts.length === 0) return;
+
+    setCurrentSeasonBeds(sourceLayouts);
+  }, [selectedSeason, bedsSpring, bedsSummer, bedsFall, bedsWinter]);
 
   /**
    * Neues Beet anlegen
@@ -92,15 +167,16 @@ export default function App() {
         y: pendingBedData.y,
         width: pendingBedData.width,
         height: pendingBedData.height,
-        planting: null,
+        plantings: [],
       };
-      setCurrentSeasonBeds([...currentBeds, newBed]);
+      setBedLayoutsForAllSeasons((beds) => [...beds, newBed]);
       setPendingBedData(null);
       setDialogOpen(false);
       setSelectedBedId(newBed.id);
     } else if (dialogMode === "rename" && selectedBedId) {
-      const updated = currentBeds.map((bed) => (bed.id === selectedBedId ? { ...bed, name } : bed));
-      setCurrentSeasonBeds(updated);
+      setBedLayoutsForAllSeasons((beds) =>
+        beds.map((bed) => (bed.id === selectedBedId ? { ...bed, name } : bed)),
+      );
       setDialogOpen(false);
     }
   };
@@ -140,11 +216,49 @@ export default function App() {
    */
   const handleDialogDelete = () => {
     if (selectedBedId) {
-      const updated = currentBeds.filter((b) => b.id !== selectedBedId);
-      setCurrentSeasonBeds(updated);
+      setBedLayoutsForAllSeasons((beds) => beds.filter((bed) => bed.id !== selectedBedId));
       setSelectedBedId(null);
       setDialogOpen(false);
     }
+  };
+
+  /**
+   * Pflanzung in Beet setzen
+   */
+  const handlePlantingSet = (bedId: string, plantId: string, startDay: number) => {
+    const updated = currentBeds.map((bed) => {
+      if (bed.id === bedId) {
+        return {
+          ...bed,
+          plantings: [
+            ...bed.plantings,
+            {
+              id: crypto.randomUUID(),
+              plantId,
+              startDay,
+            },
+          ],
+        };
+      }
+      return bed;
+    });
+    setCurrentSeasonBeds(updated);
+  };
+
+  /**
+   * Eine Pflanzung aus Beet entfernen
+   */
+  const handlePlantingRemove = (bedId: string, plantingId: string) => {
+    const updated = currentBeds.map((bed) => {
+      if (bed.id === bedId) {
+        return {
+          ...bed,
+          plantings: bed.plantings.filter((planting) => planting.id !== plantingId),
+        };
+      }
+      return bed;
+    });
+    setCurrentSeasonBeds(updated);
   };
 
   return (
@@ -162,7 +276,14 @@ export default function App() {
 
         <main className="main-area">
           <section className="bed-panel">
-            <div className="placeholder bed-calendar-placeholder">Beet-Kalender (placeholder)</div>
+            <BedCalendar
+              bed={selectedBed}
+              selectedSeason={selectedSeason}
+              plants={PLANTS}
+              onPlantingSet={handlePlantingSet}
+              onPlantingRemove={handlePlantingRemove}
+              bedsFromPrevSeason={prevSeasonBeds}
+            />
             <div className="placeholder bed-info-placeholder">Beet-Info (placeholder)</div>
           </section>
           <section className="map-area">
@@ -173,6 +294,9 @@ export default function App() {
               onBedRename={handleBedRename}
               onBedDelete={handleBedDelete}
               selectedBedId={selectedBedId}
+              currentSeason={selectedSeason}
+              bedsFromPrevSeason={prevSeasonBeds}
+              plants={PLANTS}
             />
           </section>
         </main>

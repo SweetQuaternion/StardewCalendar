@@ -17,6 +17,7 @@ export function PlantCard({ plant }: PlantCardProps) {
   return (
     <div
       className={`plant-card plant-color-${plant.id}`}
+      style={{ borderLeft: `0.25em solid ${plant.color}` }}
       draggable={true}
       onDragStart={handleDragStart}
     >

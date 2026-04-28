@@ -27,7 +27,7 @@ export interface Bed {
   y: number;
   width: number;
   height: number;
-  planting: Planting | null;
+  plantings: Planting[];
 }
 
 export interface Planting {

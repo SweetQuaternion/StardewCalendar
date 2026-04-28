@@ -37,6 +37,35 @@ export default function BedDialog({
     }
   }, [open, mode]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCancel();
+        return;
+      }
+
+      if (event.key !== "Enter") return;
+
+      if (mode === "create" || mode === "rename") {
+        event.preventDefault();
+        if (!name.trim()) return;
+        onSave?.(name.trim());
+        return;
+      }
+
+      if (mode === "delete") {
+        event.preventDefault();
+        onDelete?.();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [name, mode, onCancel, onDelete, onSave, open]);
+
   if (!open) return null;
 
   return (
