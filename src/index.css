@@ -4,10 +4,10 @@
   --color-panel: #f5f2ea;
   --color-border: #c9bb99;
   --color-accent: #8fad6e;
-  --color-accent2: #c8a96e;
+  --color-accent2: #e4c282;
   --color-text: #4a3728;
   --color-text-light: #7a6252;
-  --color-grass: #d4e8c2;
+  --color-grass: #ccd4ac;
 }
 
 * {
@@ -55,13 +55,10 @@ body {
 .sidebar {
   width: 21em;
   min-width: 21em;
-  overflow: hidden;
+  overflow-y: auto;
   background: var(--color-sidebar);
   border-right: 0.0625em solid var(--color-border);
   padding: 0.75em;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75em;
 }
 .main-area {
   flex: 1;

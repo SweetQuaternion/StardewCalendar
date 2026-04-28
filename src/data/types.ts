@@ -27,7 +27,6 @@ export interface Bed {
   y: number;
   width: number;
   height: number;
-  color: string;
   planting: Planting | null;
 }
 

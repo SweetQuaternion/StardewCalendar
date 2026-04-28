@@ -315,20 +315,7 @@ Baue die interaktive Farmkarte im unteren Mittelbereich.
    - Formel: `a.x < b.x+b.width && a.x+a.width > b.x && a.y < b.y+b.height && a.y+a.height > b.y`
    - Bei Überlappung: Vorschau rot einfärben, kein Modal öffnen, Tooltip „Überlappung nicht erlaubt"
 
-4. **Beet-Farbpalette** (zufällig bei Erstellung):
-
-```ts
-const BED_COLORS = [
-  "#c8e6c9",
-  "#fff9c4",
-  "#ffe0b2",
-  "#f8bbd0",
-  "#b3e5fc",
-  "#d7ccc8",
-  "#dcedc8",
-  "#fce4ec",
-];
-```
+4. **Beet-Farbpalette** sanftes Gelb
 
 5. **Beete rendern:**
    - Farbiges Rechteck, absolut positioniert auf dem Raster
@@ -371,7 +358,10 @@ Der obere Mittelbereich zeigt den Kalender des ausgewählten Beetes. Pflanzen k�
    - Wenn kein Beet ausgewählt: Hinweistext „Wähle ein Beet auf der Karte aus, um es hier zu planen. 🌿"
    - Wenn carry-over belegt: Kalender mit Overlay „🌽 [Pflanzenname] wächst noch (aus [Vorsaison])" – kein Drag-and-Drop möglich
 
-2. **Kalender-Reihe:** 28 Tageskästchen nebeneinander, Tageszahl oben, jedes `~1.2em` breit, Drop-Ziel
+2. **Kalender-Reihe:**
+   - 28 Tageskästchen in 4 Reihen, Tageszahl oben, jedes `~2em` breit, Drop-Ziel
+   - jeweils vier Kalender nebeneinander (verschiedene Jahreszeiten)
+   - Kalenderoptik mit Wochentagen oben drüber
 
 3. **Drag-and-Drop:**
    - Drop auf Tag X → Prüfung: `startDay + plant.growDays > 28`? → ablehnen mit Tooltip „⚠️ Zu spät für diese Saison"
