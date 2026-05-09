@@ -5,8 +5,7 @@
   align-items: flex-start;
   justify-content: flex-start;
   overflow-y: auto;
-  padding: 0.75em;
-  background: var(--color-panel);
+  /* background: var(--color-panel); */
 }
 
 .bed-calendar-empty {
@@ -30,10 +29,10 @@
   display: flex;
   flex-direction: column;
   gap: 0.25em;
-  background: white;
+  background: var(--color-panel);
   border: 0.06em solid var(--color-border);
   border-radius: 0.4em;
-  padding: 0.5em;
+  padding: 1em;
   box-shadow: 0 0.1em 0.3em rgba(0, 0, 0, 0.04);
 }
 
@@ -79,22 +78,32 @@
   border-radius: 0.3em;
   background: var(--color-bg);
   cursor: pointer;
-  transition: all 0.15s ease;
+  overflow: hidden;
+  transition:
+    background-color 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s ease,
+    opacity 0.22s ease;
   position: relative;
   box-sizing: border-box;
 }
 
 .bed-calendar-day:hover {
-  background: var(--color-panel);
+  background-color: var(--color-panel);
   border-color: var(--color-accent);
   box-shadow: 0 0 0 0.06em rgba(143, 173, 110, 0.2);
 }
 
 /* Drag-over State */
 .bed-calendar-day.drag-over {
-  background: rgba(143, 173, 110, 0.15);
+  background-color: rgba(143, 173, 110, 0.15);
   border-color: var(--color-accent);
   box-shadow: 0 0 0 0.08em rgba(143, 173, 110, 0.3);
+}
+
+.bed-calendar-day.harvest-ready {
+  border-color: rgba(143, 173, 110, 0.28);
 }
 
 /* Pflanzungs-Tage */
@@ -119,6 +128,36 @@
 .bed-calendar-day.harvest-day {
   border: 0.08em solid rgba(0, 0, 0, 0.25);
   box-shadow: 0 0 0.3em rgba(0, 0, 0, 0.15);
+}
+
+.bed-calendar-day.harvest-day[data-harvest-replant="true"] {
+  border: 0.08em solid rgba(0, 0, 0, 0.28);
+}
+
+.bed-calendar-day[data-harvest-replant="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  /* Softer transition between old and new plant colors */
+  background: linear-gradient(
+    135deg,
+    var(--replant-old-color) 0%,
+    var(--replant-old-color) 40%,
+    var(--replant-new-color) 60%,
+    var(--replant-new-color) 100%
+  );
+  opacity: var(--replant-overlay-opacity, 0.75);
+  transition:
+    opacity 0.32s ease,
+    transform 0.32s ease;
+  filter: blur(0.6px);
+  pointer-events: none;
+}
+
+.bed-calendar-day[data-harvest-replant="true"] > * {
+  position: relative;
+  z-index: 1;
 }
 
 .bed-calendar-day-number {

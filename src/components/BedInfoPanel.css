@@ -1,0 +1,92 @@
+.bed-calendar-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.bed-info-panel {
+  width: 24em;
+  min-width: 24em;
+  max-width: 24em;
+  background: var(--color-panel);
+  border: 0.0625em solid var(--color-border);
+  border-radius: 0.6em;
+  padding: 0.9em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85em;
+  overflow: auto;
+}
+
+.bed-info-panel-empty {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--color-text-light);
+}
+
+.bed-info-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+}
+
+.bed-info-image {
+  width: 3em;
+  height: 3em;
+  object-fit: cover;
+  border-radius: 0.45em;
+  border: 0.06em solid var(--color-border);
+  background: white;
+  flex: 0 0 auto;
+}
+
+.bed-info-header-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+}
+
+.bed-info-title {
+  font-size: 1.05em;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.bed-info-bed-name,
+.bed-info-planting-day,
+.bed-info-section p {
+  font-size: 0.92em;
+  color: var(--color-text-light);
+  line-height: 1.35;
+}
+
+.bed-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+}
+
+.bed-info-section h4 {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.bed-info-section p + p {
+  margin-top: 0.2em;
+}
+.bed-info-revenue,
+.bed-info-costs,
+.bed-info-profit {
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.bed-info-revenue strong,
+.bed-info-costs strong,
+.bed-info-profit strong {
+  font-weight: 600;
+  color: var(--color-text);
+}

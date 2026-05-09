@@ -1,7 +1,7 @@
 :root {
   --color-bg: #f0ede4;
   --color-sidebar: #e8e0cc;
-  --color-panel: #f5f2ea;
+  --color-panel: #fbf8f0;
   --color-border: #c9bb99;
   --color-accent: #8fad6e;
   --color-accent2: #e4c282;
@@ -70,9 +70,23 @@ body {
   flex: 0 0 auto;
   min-height: 20em;
   display: flex;
+  align-items: stretch;
   border-bottom: 0.0625em solid var(--color-border);
+  background: var(--color-sidebar);
   padding: 0.75em;
   gap: 0.75em;
+}
+.season-overview-panel {
+  flex: 1;
+  min-width: 0;
+  background: var(--color-panel);
+  border: 0.0625em solid var(--color-border);
+  border-radius: 0.6em;
+  padding: 0.9em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+  overflow: auto;
 }
 .map-area {
   flex: 1;
@@ -81,10 +95,10 @@ body {
   background: var(--color-grass);
 }
 .season-panel {
-  width: 20em;
-  min-width: 20em;
+  width: 21em;
+  min-width: 21em;
   overflow-y: auto;
-  background: var(--color-panel);
+  background: var(--color-sidebar);
   border-left: 0.0625em solid var(--color-border);
   padding: 0.75em;
 }
@@ -92,6 +106,12 @@ body {
 .placeholder {
   color: var(--color-text-light);
   font-size: 0.95em;
+}
+
+.placeholder-title {
+  color: var(--color-text);
+  font-size: 0.98em;
+  font-weight: 600;
 }
 
 .spacer-sm {

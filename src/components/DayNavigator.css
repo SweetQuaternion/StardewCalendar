@@ -1,0 +1,99 @@
+.day-navigator {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  height: 100%;
+}
+
+.day-nav-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+  margin: 1em 0em;
+}
+
+.day-nav-arrow {
+  width: 2.2em;
+  height: 2.2em;
+  border: none;
+  background: color-mix(in srgb, var(--color-panel) 70%, transparent);
+  border-radius: 0.45em;
+  font-size: 1.15em;
+  cursor: pointer;
+  transition:
+    box-shadow 0.16s ease,
+    transform 0.12s ease,
+    background 0.12s ease;
+}
+
+.day-nav-arrow:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.day-nav-arrow:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-panel));
+  box-shadow: 0 0em 0.6em rgba(74, 55, 40, 0.06);
+  /* transform: translateY(-0.06em); */
+}
+
+.day-navigator:focus {
+  outline: none;
+}
+
+.day-navigator:focus-visible {
+  box-shadow: 0 0 0 0.18em color-mix(in srgb, var(--color-accent) 18%, transparent);
+  border-radius: 0.45em;
+}
+
+.day-nav-current {
+  text-align: center;
+}
+
+.day-nav-heading {
+  font-size: 2em;
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: center;
+}
+
+.day-nav-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  max-height: 9.4em;
+  overflow: auto;
+}
+
+.day-nav-empty {
+  color: var(--color-text-light);
+  font-size: 0.9em;
+}
+
+.day-nav-task-row {
+  display: flex;
+  gap: 0.6em;
+  padding: 0.3em;
+  align-items: baseline;
+}
+
+.day-nav-task-row:hover {
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-panel));
+  border-radius: 0.45em;
+  cursor: pointer;
+}
+
+.day-nav-task-bed {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--color-text);
+  width: 9em;
+}
+
+.day-nav-task-text {
+  font-size: 0.9em;
+  color: var(--color-text-light);
+  flex: 1;
+}

@@ -39,7 +39,7 @@ Bitte erledige jeden Schritt einzeln. Fahre erst fort, wenn ich es dir sage. Wen
 ┌──────────────────────────────────────────────────────────────────┐
 │                           HEADER                                 │
 ├──────────────┬───────────────────────────────┬───────────────────┤
-│              │  Beet-Kalender + Beet-Infos   │                   │
+│              │  Kalender + Infos + Aufgaben  │                   │
 │  Linke       │  (oberer Mittelbereich)       │  Rechte Spalte    │
 │  Spalte      ├───────────────────────────────┤  (Saison-         │
 │  (Pflanzen   │                               │   übersicht,      │
@@ -456,7 +456,134 @@ Rechte Spalte liefert jederzeit aktuelle Zahlen ohne extra Navigation.
 
 ---
 
-## Schritt 8: localStorage-Hook, Feinschliff & Export
+## Schritt 8: Tagesaufgaben-Panel
+
+### Ziel
+
+Rechts in der oberen Leiste steht das Spiel-Datum und alle Aufgaben, die an diesem Tag zu tun sind.
+
+### Anweisungen
+
+#### 1. State & localStorage
+
+Füge in `App.tsx` zwei neue States hinzu:
+
+```ts
+const [currentDay, setCurrentDay] = useLocalStorage<number>("sdv-current-day", 1);
+const [selectedSeason, setSelectedSeason] = useLocalStorage<SeasonId>(
+  "sdv-selected-season",
+  "spring",
+);
+```
+
+> **Wichtig:** `selectedSeason` war bisher ein normaler `useState`. Ersetze ihn durch `useLocalStorage`, damit die zuletzt angezeigte Saison beim Seitenladen wiederhergestellt wird.
+
+Beim Wechsel der Jahreszeit (`onSeasonChange`) wird `currentDay` auf `1` zurückgesetzt:
+
+```ts
+function handleSeasonChange(season: SeasonId) {
+  setSelectedSeason(season);
+  setCurrentDay(1);
+}
+```
+
+#### 2. Komponente `DayNavigator.tsx`
+
+Erstelle `src/components/DayNavigator.tsx`.
+
+**Props:**
+
+```ts
+interface DayNavigatorProps {
+  currentDay: number;
+  selectedSeason: SeasonId;
+  onDayChange: (day: number) => void;
+  beds: Bed[];
+  plants: Plant[];
+}
+```
+
+**Oberer Teil – Tagesanzeige:**
+
+- Großer zentrierter Text: `Tag ${currentDay}` in `2em`, Schriftgewicht 600
+- Darunter: Saisonname + Emoji in `1em`, Farbe `var(--color-text-light)`
+- Links daneben: Pfeil-Button `‹` (Tag − 1, deaktiviert wenn `currentDay === 1`)
+- Rechts daneben: Pfeil-Button `›` (Tag + 1, deaktiviert wenn `currentDay === 28`)
+- Layout: `display: flex; align-items: center; justify-content: space-between; gap: 0.5em`
+- Pfeil-Buttons: schlicht, kein Rahmen, `1.5em` groß, Cursor Pointer, disabled-State ausgegraut
+  **Unterer Teil – Tagesaufgaben:**
+
+Berechne die Aufgaben für den aktuellen Tag aus allen Beeten der aktuellen Saison. Für jedes Beet mit einer Pflanzung:
+
+```ts
+const harvestDays = getHarvestDays(planting, plant); // aus calculations.ts
+const shouldHarvest = harvestDays.includes(currentDay);
+const shouldPlant = planting.startDay === currentDay;
+```
+
+Zeige pro Beet mit Aufgaben einen Eintrag. Formulierungsregeln:
+
+- Erntetag + Pflanztag gleichzeitig: „[Pflanze A] ernten · [Pflanze B] aussäen"
+- Wenn gleiche Pflanze ernten und säen: "[Pflanze] ernten und neu aussäen"
+- Nur Erntetag: „[Pflanze] ernten"
+- Nur Pflanztag: „[Pflanze] säen"
+- Carry-over-Beete (mehrjährige aus Vorsaison): nur Erntetage, kein Säen
+- Keine Aufgaben: „Heute ist nichts zu tun. Genieße den Tag! 🌤️"
+
+**Format jeder Aufgabenzeile:**
+
+- Beet-Name in Schriftgewicht 600
+- Aufgabentext in `var(--color-text-light)`
+- Vertikaler Abstand zwischen Zeilen: `0.5em`
+
+#### 3. Berechnung in `calculations.ts` ergänzen
+
+```ts
+export interface DayTask {
+  bedId: string;
+  bedName: string;
+  bedColor: string;
+  harvest: Plant | null; // Pflanze die heute geerntet wird
+  sow: Plant | null; // Pflanze die heute gesät wird
+}
+
+export function getDayTasks(
+  day: number,
+  beds: Bed[],
+  plants: Plant[],
+  currentSeason: SeasonId,
+): DayTask[] {
+  const tasks: DayTask[] = [];
+
+  for (const bed of beds) {
+    if (!bed.planting) continue;
+    const plant = plants.find((p) => p.id === bed.planting!.plantId);
+    if (!plant) continue;
+
+    const harvestDays = getHarvestDays(bed.planting, plant);
+    const harvest = harvestDays.includes(day) ? plant : null;
+    const sow = bed.planting.startDay === day ? plant : null;
+
+    if (harvest || sow) {
+      tasks.push({ bedId: bed.id, bedName: bed.name, bedColor: bed.color, harvest, sow });
+    }
+  }
+
+  return tasks;
+}
+```
+
+#### 4. Integration in `App.tsx`
+
+- Übergib `currentDay`, `onDayChange={setCurrentDay}`, `beds` und `plants` an `DayNavigator`
+
+### Ergebnis von Schritt 9
+
+Der User sieht immer den aktuellen Spieltag und bekommt eine klare, beetweise Aufgabenliste: was heute geerntet und gesät werden muss. Tag und Saison werden in localStorage gespeichert und beim Seitenladen wiederhergestellt. 🌱
+
+---
+
+## Schritt 9: localStorage-Hook, Feinschliff & Export
 
 ### Ziel
 
@@ -494,7 +621,7 @@ Ersetze alle bisherigen manuellen `localStorage`-Zugriffe durch diesen Hook.
 6. **Saisonende-Warnung:**
    - Pflanzungen mit `startDay + plant.growDays > 28`: rote Markierung im Kalender + Tooltip „⚠️ Kein Ertrag mehr in dieser Saison"
 
-### Ergebnis von Schritt 8
+### Ergebnis von Schritt 9
 
 Die App ist vollständig, stabil, persistent und exportierbar. 🎉
 

@@ -6,10 +6,13 @@ import type { Plant } from "../data/types";
 
 interface PlantCardProps {
   plant: Plant;
+  onDragStart?: (plantId: string) => void;
+  onDragEnd?: () => void;
 }
 
-export function PlantCard({ plant }: PlantCardProps) {
+export function PlantCard({ plant, onDragStart, onDragEnd }: PlantCardProps) {
   const handleDragStart = (event: DragEvent<HTMLDivElement>) => {
+    onDragStart?.(plant.id);
     event.dataTransfer.setData("plantId", plant.id);
     event.dataTransfer.effectAllowed = "copy";
   };
@@ -20,6 +23,7 @@ export function PlantCard({ plant }: PlantCardProps) {
       style={{ borderLeft: `0.25em solid ${plant.color}` }}
       draggable={true}
       onDragStart={handleDragStart}
+      onDragEnd={onDragEnd}
     >
       <img className="plant-card-image" src={`/plants/${plant.imageFile}`} alt={plant.name} />
 

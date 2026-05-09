@@ -5,16 +5,26 @@ import { SeasonSelector } from "./components/SeasonSelector.tsx";
 import FarmMap from "./components/FarmMap";
 import BedDialog from "./components/BedDialog.tsx";
 import BedCalendar from "./components/BedCalendar.tsx";
+import BedInfoPanel from "./components/BedInfoPanel.tsx";
+import SeasonSummary from "./components/SeasonSummary.tsx";
 import useLocalStorage from "./hooks/useLocalStorage.ts";
 import { PLANTS } from "./data/plants.ts";
 import { prevSeason } from "./utils/calculations.ts";
+import DayNavigator from "./components/DayNavigator";
 import type { SeasonId, Bed } from "./data/types.ts";
 
 type DialogMode = "create" | "rename" | "delete" | "action" | "collision";
 
 export default function App() {
-  const [selectedSeason, setSelectedSeason] = useState<SeasonId>("spring");
+  const [selectedSeason, setSelectedSeason] = useLocalStorage<SeasonId>(
+    "sdv-selected-season",
+    "spring",
+  );
   const [selectedBedId, setSelectedBedId] = useState<string | null>(null);
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<number | null>(null);
+  const [currentDay, setCurrentDay] = useLocalStorage<number>("sdv-current-day", 1);
+  const [draggedPlantId, setDraggedPlantId] = useState<string | null>(null);
+  const [hoveredBedId, setHoveredBedId] = useState<string | null>(null);
   const seasonOrder: SeasonId[] = ["spring", "summer", "fall", "winter"];
 
   // Beete pro Saison in localStorage
@@ -133,6 +143,10 @@ export default function App() {
   const selectedBed = currentBeds.find((b) => b.id === selectedBedId) || null;
 
   useEffect(() => {
+    setSelectedCalendarDay(null);
+  }, [selectedBedId]);
+
+  useEffect(() => {
     const currentSeasonBeds = getCurrentSeasonBeds().map(normalizeBed);
     if (currentSeasonBeds.length > 0) return;
 
@@ -144,6 +158,11 @@ export default function App() {
 
     setCurrentSeasonBeds(sourceLayouts);
   }, [selectedSeason, bedsSpring, bedsSummer, bedsFall, bedsWinter]);
+
+  const handleSeasonChange = (season: SeasonId) => {
+    setSelectedSeason(season);
+    setCurrentDay(1);
+  };
 
   /**
    * Neues Beet anlegen
@@ -270,21 +289,46 @@ export default function App() {
 
       <div className="app-body">
         <aside className="sidebar">
-          <SeasonSelector selectedSeason={selectedSeason} onSeasonChange={setSelectedSeason} />
-          <PlantList selectedSeason={selectedSeason} />
+          <SeasonSelector selectedSeason={selectedSeason} onSeasonChange={handleSeasonChange} />
+          <PlantList
+            selectedSeason={selectedSeason}
+            onPlantDragStart={setDraggedPlantId}
+            onPlantDragEnd={() => setDraggedPlantId(null)}
+          />
         </aside>
 
         <main className="main-area">
           <section className="bed-panel">
-            <BedCalendar
+            <div className="bed-calendar-pane">
+              <BedCalendar
+                bed={selectedBed}
+                selectedSeason={selectedSeason}
+                plants={PLANTS}
+                onPlantingSet={handlePlantingSet}
+                onPlantingRemove={handlePlantingRemove}
+                onDaySelect={setSelectedCalendarDay}
+                draggedPlantId={draggedPlantId}
+                bedsFromPrevSeason={prevSeasonBeds}
+              />
+            </div>
+            <BedInfoPanel
               bed={selectedBed}
-              selectedSeason={selectedSeason}
               plants={PLANTS}
-              onPlantingSet={handlePlantingSet}
-              onPlantingRemove={handlePlantingRemove}
-              bedsFromPrevSeason={prevSeasonBeds}
+              selectedDay={selectedCalendarDay}
+              currentDay={currentDay}
             />
-            <div className="placeholder bed-info-placeholder">Beet-Info (placeholder)</div>
+            <aside className="season-overview-panel placeholder">
+              <DayNavigator
+                currentDay={currentDay}
+                selectedSeason={selectedSeason}
+                onDayChange={setCurrentDay}
+                beds={currentBeds}
+                plants={PLANTS}
+                bedsFromPrevSeason={prevSeasonBeds}
+                onTaskHover={(id) => setHoveredBedId(id)}
+                onTaskClick={(id) => setSelectedBedId(id)}
+              />
+            </aside>
           </section>
           <section className="map-area">
             <FarmMap
@@ -294,6 +338,7 @@ export default function App() {
               onBedRename={handleBedRename}
               onBedDelete={handleBedDelete}
               selectedBedId={selectedBedId}
+              hoveredBedId={hoveredBedId}
               currentSeason={selectedSeason}
               bedsFromPrevSeason={prevSeasonBeds}
               plants={PLANTS}
@@ -302,7 +347,12 @@ export default function App() {
         </main>
 
         <aside className="season-panel">
-          <div className="placeholder">Saisonübersicht (placeholder)</div>
+          <SeasonSummary
+            beds={currentBeds}
+            bedsFromPrevSeason={prevSeasonBeds}
+            selectedSeason={selectedSeason}
+            plants={PLANTS}
+          />
         </aside>
       </div>
 

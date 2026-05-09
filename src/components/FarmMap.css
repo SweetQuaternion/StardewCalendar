@@ -59,6 +59,11 @@
   box-shadow: 0 0.15em 0.35em rgba(0, 0, 0, 0.12);
 }
 
+.farm-bed.hovered {
+  filter: brightness(1.05);
+  box-shadow: 0 0.15em 0.35em rgba(0, 0, 0, 0.12);
+}
+
 .farm-bed.selected {
   border-color: var(--color-accent);
   box-shadow:

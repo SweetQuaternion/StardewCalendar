@@ -11,6 +11,7 @@ interface Props {
   onBedRename: (bedId: string) => void;
   onBedDelete: (bedId: string) => void;
   selectedBedId: string | null;
+  hoveredBedId?: string | null;
   currentSeason: SeasonId;
   bedsFromPrevSeason: Bed[];
   plants: Plant[];
@@ -25,6 +26,7 @@ export default function FarmMap({
   onBedRename,
   onBedDelete,
   selectedBedId,
+  hoveredBedId,
   currentSeason,
   bedsFromPrevSeason,
   plants,
@@ -257,7 +259,7 @@ export default function FarmMap({
           return (
             <div
               key={bed.id}
-              className={`farm-bed ${selectedBedId === bed.id ? "selected" : ""} ${carryoverInfo ? "carryover" : ""}`}
+              className={`farm-bed ${selectedBedId === bed.id ? "selected" : ""} ${carryoverInfo ? "carryover" : ""} ${hoveredBedId === bed.id ? "hovered" : ""}`}
               style={{
                 left: `${gridToPixel(bed.x)}px`,
                 top: `${gridToPixel(bed.y)}px`,

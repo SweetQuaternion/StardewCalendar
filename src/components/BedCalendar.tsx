@@ -10,6 +10,8 @@ interface Props {
   plants: Plant[];
   onPlantingSet: (bedId: string, plantId: string, startDay: number) => void;
   onPlantingRemove: (bedId: string, plantingId: string) => void;
+  onDaySelect?: (dayNumber: number) => void;
+  draggedPlantId?: string | null;
   bedsFromPrevSeason: Bed[];
 }
 
@@ -22,6 +24,8 @@ export default function BedCalendar({
   bedsFromPrevSeason,
   onPlantingSet,
   onPlantingRemove,
+  onDaySelect,
+  draggedPlantId,
 }: Props) {
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
   const [showReplaceDialog, setShowReplaceDialog] = useState(false);
@@ -73,6 +77,50 @@ export default function BedCalendar({
 
   const carryoverInfo = getCarryoverPlant();
 
+  const getHarvestReplantInfo = (
+    dayNumber: number,
+  ): { oldPlant: Plant; newPlant: Plant } | null => {
+    if (!bed) return null;
+
+    const newPlanting = [...bed.plantings]
+      .reverse()
+      .find((planting) => planting.startDay === dayNumber);
+    if (!newPlanting) return null;
+
+    const newPlant = plants.find((plant) => plant.id === newPlanting.plantId);
+    if (!newPlant) return null;
+
+    const oldPlanting = bed.plantings.find((planting) => {
+      if (planting.id === newPlanting.id) return false;
+      const plant = plants.find((entry) => entry.id === planting.plantId);
+      if (!plant || plant.regrowDays !== null) return false;
+      return getHarvestDays(planting, plant).includes(dayNumber);
+    });
+
+    if (!oldPlanting) return null;
+
+    const oldPlant = plants.find((plant) => plant.id === oldPlanting.plantId);
+    if (!oldPlant) return null;
+
+    return { oldPlant, newPlant };
+  };
+
+  const getDragHarvestPreviewInfo = (
+    dayNumber: number,
+  ): { oldPlant: Plant; newPlant: Plant } | null => {
+    if (!bed || !draggedPlantId) return null;
+
+    const draggedPlant = plants.find((plant) => plant.id === draggedPlantId);
+    if (!draggedPlant) return null;
+
+    const dayStatus = getDayStatus(dayNumber);
+    if (!dayStatus || dayStatus.type !== "harvest" || dayStatus.plant.regrowDays !== null) {
+      return null;
+    }
+
+    return { oldPlant: dayStatus.plant, newPlant: draggedPlant };
+  };
+
   /**
    * Handle Drop auf Kalender-Tag
    */
@@ -86,6 +134,10 @@ export default function BedCalendar({
 
     const plant = plants.find((p) => p.id === plantId);
     if (!plant) return;
+
+    const dayStatus = getDayStatus(dayNumber);
+    const canPlantOnHarvestDay =
+      dayStatus?.type === "harvest" && dayStatus.plant.regrowDays === null;
 
     // Prüfe ob Pflanztag + Wachstum noch in die Saison passt
     if (dayNumber + plant.growDays - 1 > 28) {
@@ -104,8 +156,7 @@ export default function BedCalendar({
     }
 
     // Prüfe ob dieser Tag bereits belegt ist (von einer anderen Pflanzung)
-    const dayStatus = getDayStatus(dayNumber);
-    if (dayStatus) {
+    if (dayStatus && !canPlantOnHarvestDay) {
       setShowReplaceDialog(true);
       setPendingPlanting({ plantId, startDay: dayNumber });
       return;
@@ -267,6 +318,10 @@ export default function BedCalendar({
             {Array.from({ length: 28 }).map((_, dayIdx) => {
               const dayNumber = dayIdx + 1; // 1-28
               const dayStatus = getDayStatus(dayNumber);
+              const harvestReplantInfo = getHarvestReplantInfo(dayNumber);
+              const dragHarvestPreviewInfo =
+                dragOverDay === dayNumber ? getDragHarvestPreviewInfo(dayNumber) : null;
+              const mixedHarvestInfo = harvestReplantInfo ?? dragHarvestPreviewInfo;
               const harvestDays = bed?.plantings.length
                 ? bed.plantings.flatMap((p) => {
                     const plant = plants.find((pl) => pl.id === p.plantId);
@@ -284,24 +339,40 @@ export default function BedCalendar({
                 <div
                   key={dayNumber}
                   className={`bed-calendar-day ${dragOverDay === dayNumber ? "drag-over" : ""} ${dayStatus ? `planted planted-${dayStatus.type}` : ""} ${isHarvest ? "harvest-day" : ""}`}
+                  data-harvest-replant={mixedHarvestInfo ? "true" : undefined}
                   style={
-                    dayStatus
-                      ? {
-                          backgroundColor: dayStatus.plant.color,
-                          opacity:
-                            dayStatus.type === "harvest"
-                              ? 0.85
-                              : dayStatus.type === "regrow"
-                                ? 0.5
-                                : 0.7,
-                        }
-                      : {}
+                    mixedHarvestInfo
+                      ? ({
+                          backgroundColor: mixedHarvestInfo.oldPlant.color,
+                          ["--replant-old-color" as never]: mixedHarvestInfo.oldPlant.color,
+                          ["--replant-new-color" as never]: mixedHarvestInfo.newPlant.color,
+                          ["--replant-overlay-opacity" as never]: harvestReplantInfo
+                            ? "0.9"
+                            : "0.72",
+                          opacity: 0.94,
+                        } as React.CSSProperties)
+                      : dayStatus
+                        ? {
+                            backgroundColor: dayStatus.plant.color,
+                            opacity:
+                              dayStatus.type === "harvest"
+                                ? 0.85
+                                : dayStatus.type === "regrow"
+                                  ? 0.5
+                                  : 0.7,
+                          }
+                        : {}
                   }
-                  title={tooltipText}
+                  title={
+                    mixedHarvestInfo
+                      ? `${mixedHarvestInfo.oldPlant.name} → ${mixedHarvestInfo.newPlant.name}`
+                      : tooltipText
+                  }
                   onDrop={(e) => handleDrop(dayNumber, e)}
                   onDragOver={handleDragOver}
                   onDragEnter={(e) => handleDragEnter(dayNumber, e)}
                   onDragLeave={handleDragLeave}
+                  onClick={() => onDaySelect?.(dayNumber)}
                   onContextMenu={(e) => handleRightClick(dayNumber, e)}
                 >
                   <span className="bed-calendar-day-number">{dayNumber}</span>
