@@ -2,6 +2,7 @@ import "./SeasonSelector.css";
 
 import { SEASONS } from "../data/seasons";
 import type { SeasonId } from "../data/types";
+import { useI18n } from "../contexts/I18nContext";
 
 interface SeasonSelectorProps {
   selectedSeason: SeasonId;
@@ -9,6 +10,8 @@ interface SeasonSelectorProps {
 }
 
 export function SeasonSelector({ selectedSeason, onSeasonChange }: SeasonSelectorProps) {
+  const { t } = useI18n();
+
   return (
     <div className="season-selector">
       {SEASONS.map((season) => {
@@ -22,7 +25,7 @@ export function SeasonSelector({ selectedSeason, onSeasonChange }: SeasonSelecto
             onClick={() => onSeasonChange(season.id)}
           >
             <span className="season-button-emoji">{season.emoji}</span>
-            <span className="season-button-label">{season.label}</span>
+            <span className="season-button-label">{t(`season.${season.id}`)}</span>
           </button>
         );
       })}

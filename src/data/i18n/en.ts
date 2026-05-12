@@ -1,0 +1,179 @@
+export const en = {
+  // BedInfoPanel
+  "bedInfo.selectBed": "Select a bed to see planting details here. 🌿",
+  "bedInfo.emptyBed": "This bed is empty. Drag a plant here to see the details. 🌱",
+  "bedInfo.nothingGrowing": "Nothing is growing in this bed today. It's currently empty. 🌱",
+  "bedInfo.plantNotFound": "Could not find plant for this bed.",
+  "bedInfo.plantingDay": "Planting day:",
+  "bedInfo.growth": "Growth:",
+  "bedInfo.days": "Days",
+  "bedInfo.fertilizer": "Fertilizer:",
+  "bedInfo.yield": "Yield",
+  "bedInfo.seedCosts": "Seed Costs",
+  "bedInfo.profit": "Profit",
+  "bedInfo.harvests": "harvests",
+  "bedInfo.quality": "Quality",
+
+  // BedDialog
+  "dialog.createBed": "Create New Bed",
+  "dialog.renameBed": "Rename Bed",
+  "dialog.deleteBed": "Delete Bed",
+  "dialog.chooseAction": "Choose Action",
+  "dialog.overlapError": "⚠️ Overlap Not Allowed",
+  "dialog.bedName": "Name",
+  "dialog.bedNamePlaceholder": "Bed Name",
+  "dialog.deleteConfirm": "Are you sure you want to delete this bed? This action cannot be undone.",
+  "dialog.chooseActionText": "Choose an action for this bed.",
+  "dialog.overlapText": "This bed overlaps with another bed. Please try placing it elsewhere.",
+  "dialog.cancel": "Cancel",
+  "dialog.rename": "Rename",
+  "dialog.delete": "Delete",
+  "dialog.create": "Create",
+  "dialog.save": "Save",
+  "dialog.ok": "OK",
+
+  // DayNavigator
+  "day.noTasks": "Nothing to do today. Enjoy the day! 🌤️",
+  "day.harvestAndResow": "harvest and resow",
+  "day.harvest": "harvest",
+  "day.sow": "sow",
+
+  // BedCalendar
+  "calendar.selectBedCalendar": "Select a bed on the map to plan it here. 🌿",
+  "calendar.weekDays": "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
+  "calendar.tooLate": "⚠️ Too late for this season!",
+  "calendar.needsDays": "needs",
+  "calendar.toGrow": "days to grow.",
+  "calendar.multiYearBlocakage":
+    "🚫 This bed is blocked by a multi-season planting and cannot be replanted.",
+  "calendar.dayBusy": "🚫 This day is already occupied.",
+  "calendar.dayOccupied": "🚫 This day is already occupied.",
+  "calendar.carryoverPlant": "🌽",
+  "calendar.growsFrom": "still growing (from",
+  "calendar.day": "Day",
+  "calendar.noFreePlantingDay": "⚠️ No free planting day found this season.",
+
+  // PlantCard
+  "plant.days": "days",
+  "plant.every": "every",
+  "plant.regrow": "🔄",
+  "plant.price": "💰",
+
+  // PlantList
+  "plantList.title": "Available Plants",
+
+  // Plant Names
+  "plant.name.bluejazz": "Blue Jazz",
+  "plant.name.cauliflower": "Cauliflower",
+  "plant.name.strawberry": "Strawberry",
+  "plant.name.greenbean": "Green Bean",
+  "plant.name.kale": "Kale",
+  "plant.name.coffee": "Coffee Bean",
+  "plant.name.carrot": "Carrot",
+  "plant.name.potato": "Potato",
+  "plant.name.garlic": "Garlic",
+  "plant.name.parsnip": "Parsnip",
+  "plant.name.rhubarb": "Rhubarb",
+  "plant.name.tulip": "Tulip",
+  "plant.name.riceshoot": "Rice Shoot",
+  "plant.name.blueberry": "Blueberry",
+  "plant.name.hops": "Hops",
+  "plant.name.corn": "Corn",
+  "plant.name.melon": "Melon",
+  "plant.name.poppy": "Poppy",
+  "plant.name.hotpepper": "Hot Pepper",
+  "plant.name.radish": "Radish",
+  "plant.name.redcabbage": "Red Cabbage",
+  "plant.name.summersquash": "Summer Squash",
+  "plant.name.summerspangle,": "Summer Spangle",
+  "plant.name.sunflower": "Sunflower",
+  "plant.name.starfruit": "Starfruit",
+  "plant.name.tomato": "Tomato",
+  "plant.name.wheat": "Wheat",
+  "plant.name.amaranth": "Amaranth",
+  "plant.name.artichoke": "Artichoke",
+  "plant.name.eggplant": "Eggplant",
+  "plant.name.broccoli": "Broccoli",
+  "plant.name.fairyrose": "Fairy Rose",
+  "plant.name.pumpkin": "Pumpkin",
+  "plant.name.cranberry": "Cranberry",
+  "plant.name.beet": "Beet",
+  "plant.name.bok_choy": "Bok Choy",
+  "plant.name.yam": "Yam",
+  "plant.name.grape": "Grape",
+  "plant.name.powdermelon": "Powdermelon",
+  // Calendar labels
+  "calendar.type.growth": "Growth",
+  "calendar.type.harvest": "Harvest ✂️",
+  "calendar.type.regrow": "Regrow",
+
+  // Fertilizers
+  "fertilizer.none": "No Fertilizer",
+  "fertilizer.speed_gro": "Speed-Gro",
+  "fertilizer.deluxe_speed_gro": "Deluxe Speed-Gro",
+  "fertilizer.hyper_speed_gro": "Hyper Speed-Gro",
+
+  "qualityFertilizer.none": "No Quality Fertilizer",
+  "qualityFertilizer.basic": "Basic Fertilizer",
+  "qualityFertilizer.quality": "Quality Fertilizer",
+  "qualityFertilizer.deluxe": "Deluxe Fertilizer",
+
+  "retainingFertilizer.none": "No Retaining Soil",
+  "retainingFertilizer.basic": "Retaining Soil (Basic)",
+  "retainingFertilizer.quality": "Retaining Soil (Quality)",
+  "retainingFertilizer.deluxe": "Deluxe Retaining Soil",
+
+  // FarmMap drag hints
+  "farmMap.dragTipSuffix": "drag and drop onto a bed",
+  "farmMap.sprinklerLabel": "Quality Sprinkler",
+  // Tasks patterns
+  "task.sow": "Sow {plant}",
+  "task.harvest": "Harvest {plant}",
+  "task.harvestAndResow": "Harvest and resow {plant}",
+
+  // General
+  "general.tiles": "tiles",
+
+  // SeasonSummary
+  "summary.title": "📋 Season Overview",
+  "summary.subtitle": "Shopping List and Yield Preview",
+  "summary.shoppingList": "🛒 Shopping List",
+  "summary.expectedYield": "📈 Expected Yield",
+  "summary.yield": "Yield:",
+  "summary.profit": "Profit:",
+  "summary.from": "from",
+
+  // Season Summary additional
+  "summary.empty": "Plant your beds to see an overview. 🌱",
+  "summary.noNewSeeds": "No new seeds needed — only carry-over present.",
+  "summary.total": "Total:",
+  "summary.seeds": "Seeds",
+  // Header actions
+  "header.export": "Export",
+  "header.import": "Import",
+
+  // FarmMap
+  "farmMap.level": "Level",
+  "farmMap.agriculturist": "🌾 Agriculturist",
+  "farmMap.decreaseLevel": "Decrease Level",
+  "farmMap.increaseLevel": "Increase Level",
+  "farmMap.farmingLevel": "Farming Level",
+
+  // Alerts & Messages
+  "alert.carryoverBlocked":
+    "🚫 This bed is blocked by a multi-season planting and cannot be planted.",
+  "alert.importFailed": "Import failed:",
+  "alert.importJsonError": "Import failed: The file is not valid JSON.",
+  "confirm.importOverwrite":
+    "Importing will overwrite all existing farm data. Do you want to continue?",
+
+  // Seasons
+  "season.spring": "Spring",
+  "season.summer": "Summer",
+  "season.fall": "Fall",
+  "season.winter": "Winter",
+
+  // General
+  "general.unknown": "unknown",
+  "general.prevSeason": "previous season",
+};

@@ -1,5 +1,5 @@
-import type { Bed, Plant } from "../data/types";
-import { FERTILIZERS, QUALITY_FERTILIZER_LEVEL } from "../data/fertilizers";
+import type { Bed, Plant, SeasonId } from "../data/types";
+import { QUALITY_FERTILIZER_LEVEL } from "../data/fertilizers";
 import {
   calcGrowDays,
   calcExpectedHarvestValue,
@@ -8,11 +8,13 @@ import {
   getBedEffectiveArea,
   getHarvestDays,
 } from "../utils/calculations";
+import { useI18n } from "../contexts/I18nContext";
 import "./BedInfoPanel.css";
 
 interface BedInfoPanelProps {
   bed: Bed | null;
   plants: Plant[];
+  selectedSeason: SeasonId;
   selectedDay: number | null;
   currentDay: number;
   farmingLevel: number;
@@ -22,16 +24,23 @@ interface BedInfoPanelProps {
 export default function BedInfoPanel({
   bed,
   plants,
+  selectedSeason,
   selectedDay,
   currentDay,
   farmingLevel,
   agriculturist,
 }: BedInfoPanelProps) {
+  const { t, language } = useI18n();
+  const formatSeasonDay = (day: number) =>
+    language === "en"
+      ? `${t(`season.${selectedSeason}`)} ${day}`
+      : `${day}. ${t(`season.${selectedSeason}`)}`;
+
   if (!bed) {
     return (
       <aside className="bed-info-panel">
         <div className="bed-info-panel-empty">
-          <p>Wähle ein Beet aus, um hier die Pflanzdetails zu sehen. 🌿</p>
+          <p>{t("bedInfo.selectBed")}</p>
         </div>
       </aside>
     );
@@ -60,10 +69,14 @@ export default function BedInfoPanel({
       : null;
 
   const plant = planting ? (plants.find((entry) => entry.id === planting.plantId) ?? null) : null;
-  const fertilizer =
+  const fertilizerLabel =
     bed.fertilizer.category === "speed"
-      ? FERTILIZERS.find((entry) => entry.id === bed.fertilizer.type)
-      : null;
+      ? t(`fertilizer.${bed.fertilizer.type}`)
+      : bed.fertilizer.category === "quality"
+        ? t(`qualityFertilizer.${bed.fertilizer.type}`)
+        : bed.fertilizer.category === "retaining"
+          ? t(`retainingFertilizer.${bed.fertilizer.type}`)
+          : "";
   const qualityFertilizerLevel =
     bed.fertilizer.category === "quality" ? QUALITY_FERTILIZER_LEVEL[bed.fertilizer.type] : 0;
   const qualityDistribution = calcQualityDistribution(farmingLevel, qualityFertilizerLevel);
@@ -84,38 +97,44 @@ export default function BedInfoPanel({
     <aside className="bed-info-panel">
       {bed.plantings.length === 0 ? (
         <div className="bed-info-panel-empty">
-          <p>
-            Dieses Beet ist noch leer. Zieh eine Pflanze hinein, um hier die Details zu sehen. 🌱
-          </p>
+          <p>{t("bedInfo.emptyBed")}</p>
         </div>
       ) : !planting ? (
         <div className="bed-info-panel-empty">
-          <p>In diesem Beet wächst an diesem Tag nichts. Es ist gerade leer. 🌱</p>
+          <p>{t("bedInfo.nothingGrowing")}</p>
         </div>
       ) : !plant ? (
         <div className="bed-info-panel-empty">
-          <p>Zu diesem Beet konnte keine Pflanze gefunden werden.</p>
+          <p>{t("bedInfo.plantNotFound")}</p>
         </div>
       ) : (
         <>
           <div className="bed-info-header">
-            <img className="bed-info-image" src={`/plants/${plant.imageFile}`} alt={plant.name} />
+            <img
+              className="bed-info-image"
+              src={`/plants/${plant.imageFile}`}
+              alt={t(`plant.name.${plant.id}`)}
+            />
             <div className="bed-info-header-copy">
-              <h3 className="bed-info-title">{plant.name}</h3>
+              <h3 className="bed-info-title">{t(`plant.name.${plant.id}`)}</h3>
               <p className="bed-info-fertilizer-meta">
-                Pflanztag: Tag {planting.startDay}, Wachstum:{" "}
-                {calcGrowDays(plant, bed.fertilizer, agriculturist)} Tage
+                {t("bedInfo.plantingDay")} {formatSeasonDay(planting.startDay)},{" "}
+                {t("bedInfo.growth")} {calcGrowDays(plant, bed.fertilizer, agriculturist)}{" "}
+                {t("bedInfo.days")}
               </p>
-              {fertilizer && fertilizer.id !== "none" && (
-                <p className="bed-info-fertilizer-meta">Dünger: {fertilizer.label}</p>
+              {bed.fertilizer.type !== "none" && (
+                <p className="bed-info-fertilizer-meta">
+                  {t("bedInfo.fertilizer")} {fertilizerLabel}
+                </p>
               )}
             </div>
           </div>
 
           <div className="bed-info-section">
-            <h4>Ertrag</h4>
+            <h4>{t("bedInfo.yield")}</h4>
             <p className="bed-info-revenue">
-              {harvestCount} Ernten × ∅ {Math.round(expectedHarvestValue)} G × {bedSize} Kästchen ={" "}
+              {harvestCount != 1 && `${harvestCount} ${t("bedInfo.harvests")} ×`} ∅{" "}
+              {Math.round(expectedHarvestValue)} G × {bedSize} {t("general.tiles")} ={" "}
               <strong>{Math.round(totalRevenue)} G</strong>
             </p>
             <p className="bed-info-fertilizer-meta">
@@ -129,13 +148,13 @@ export default function BedInfoPanel({
           </div>
 
           <div className="bed-info-section">
-            <h4>Samenkosten</h4>
+            <h4>{t("bedInfo.seedCosts")}</h4>
             <p className="bed-info-costs">
-              {plant.seedPrice} G × {bedSize} Kästchen = {seedCosts} G
+              {plant.seedPrice} G × {bedSize} {t("general.tiles")} = {seedCosts} G
             </p>
           </div>
           <div className="bed-info-section">
-            <h4>Gewinn</h4>
+            <h4>{t("bedInfo.profit")}</h4>
             <p className="bed-info-profit">
               {Math.round(totalRevenue)} − {seedCosts} ={" "}
               <strong>{Math.round(totalProfit)} G</strong>

@@ -8,6 +8,7 @@ import {
   prevSeason,
 } from "../utils/calculations";
 import { FERTILIZERS, QUALITY_FERTILIZERS, RETAINING_FERTILIZERS } from "../data/fertilizers";
+import { useI18n } from "../contexts/I18nContext";
 import "./SeasonSummary.css";
 
 interface SeasonSummaryProps {
@@ -32,13 +33,6 @@ type YieldRow = {
   revenue: number;
   isCarryover: boolean;
   carryoverSeasonLabel?: string;
-};
-
-const SEASON_LABELS: Record<SeasonId, string> = {
-  spring: "Frühling",
-  summer: "Sommer",
-  fall: "Herbst",
-  winter: "Winter",
 };
 
 function calcCarryoverHarvestRevenue(
@@ -74,6 +68,13 @@ export default function SeasonSummary({
   farmingLevel,
   agriculturist = false,
 }: SeasonSummaryProps) {
+  const { t } = useI18n();
+  const SEASON_LABELS: Record<SeasonId, string> = {
+    spring: t("season.spring"),
+    summer: t("season.summer"),
+    fall: t("season.fall"),
+    winter: t("season.winter"),
+  };
   const plantMap = new Map(plants.map((plant) => [plant.id, plant]));
 
   const currentPlantings = beds.flatMap((bed) =>
@@ -205,7 +206,9 @@ export default function SeasonSummary({
         return {
           bedId: bed.id,
           bedName: bed.name,
-          plantNames: Array.from(new Set(bedPlantings.map((entry) => entry.plant.name))),
+          plantNames: Array.from(
+            new Set(bedPlantings.map((entry) => t(`plant.name.${entry.plant.id}`))),
+          ),
           revenue: bedPlantings.reduce(
             (sum, entry) =>
               sum +
@@ -226,7 +229,7 @@ export default function SeasonSummary({
     ...carryoverPlantings.map<YieldRow>((entry) => ({
       bedId: entry.bed.id,
       bedName: entry.bed.name,
-      plantNames: [entry.plant.name],
+      plantNames: [t(`plant.name.${entry.plant.id}`)],
       revenue:
         calcCarryoverHarvestRevenue(
           entry.planting,
@@ -249,24 +252,20 @@ export default function SeasonSummary({
   return (
     <div className="season-summary">
       <div className="season-summary-header">
-        <h2 className="season-summary-title">📋 Saisonübersicht</h2>
+        <h2 className="season-summary-title">{t("summary.title")}</h2>
         <p className="season-summary-subtitle">
-          {SEASON_LABELS[selectedSeason]} · Einkaufsliste und Ertragsvorschau
+          {SEASON_LABELS[selectedSeason]} · {t("summary.subtitle")}
         </p>
       </div>
 
       {!hasAnyPlantings ? (
-        <div className="season-summary-empty">
-          Pflanze deine Beete, um eine Übersicht zu sehen. 🌱
-        </div>
+        <div className="season-summary-empty">{t("summary.empty")}</div>
       ) : (
         <>
           <section className="season-summary-section">
-            <h3 className="season-summary-section-title">🛒 Einkaufsliste</h3>
+            <h3 className="season-summary-section-title">{t("summary.shoppingList")}</h3>
             {shoppingRows.length === 0 ? (
-              <p className="season-summary-note">
-                Keine neuen Samen nötig – nur Carry-over vorhanden.
-              </p>
+              <p className="season-summary-note">{t("summary.noNewSeeds")}</p>
             ) : (
               <div className="season-summary-list">
                 {shoppingRows.map((row) => (
@@ -274,40 +273,50 @@ export default function SeasonSummary({
                     <img
                       className="season-summary-image"
                       src={`/plants/${row.plant.imageFile}`}
-                      alt={row.plant.name}
+                      alt={t(`plant.name.${row.plant.id}`)}
                     />
                     <div className="season-summary-row-main">
-                      <div className="season-summary-row-title">{row.plant.name}</div>
+                      <div className="season-summary-row-title">
+                        {t(`plant.name.${row.plant.id}`)}
+                      </div>
                     </div>
-                    <div className="season-summary-row-total">{row.seedCount} Samen</div>
+                    <div className="season-summary-row-total">
+                      {row.seedCount} {t("summary.seeds")}
+                    </div>
                   </article>
                 ))}
                 {fertilizerRows.length > 0 &&
-                  fertilizerRows.map((f) => (
-                    <article key={f.key} className="season-summary-row">
-                      <img
-                        className="season-summary-image"
-                        src={
-                          f.category === "speed"
-                            ? `/fertilizers/${f.imageFile}`
-                            : f.category === "quality"
-                              ? `/fertilizers/${f.imageFile}`
-                              : `/fertilizers/${f.imageFile}`
-                        }
-                        alt={f.label}
-                      />
-                      <div className="season-summary-row-main">
-                        <div className="season-summary-row-title">{f.label}</div>
-                      </div>
-                      <div className="season-summary-row-total">{f.count}</div>
-                    </article>
-                  ))}
+                  fertilizerRows.map((f) => {
+                    const type = f.key.split("-")[1] ?? "";
+                    const label =
+                      f.category === "speed"
+                        ? t(`fertilizer.${type}`)
+                        : f.category === "quality"
+                          ? t(`qualityFertilizer.${type}`)
+                          : t(`retainingFertilizer.${type}`);
+
+                    return (
+                      <article key={f.key} className="season-summary-row">
+                        <img
+                          className="season-summary-image"
+                          src={`/fertilizers/${f.imageFile}`}
+                          alt={label}
+                        />
+                        <div className="season-summary-row-main">
+                          <div className="season-summary-row-title">{label}</div>
+                        </div>
+                        <div className="season-summary-row-total">{f.count}</div>
+                      </article>
+                    );
+                  })}
               </div>
             )}
 
             <div className="season-summary-total">
-              Gesamt:{" "}
-              <strong>{shoppingRows.reduce((sum, row) => sum + row.seedCount, 0)} Samen</strong>
+              {t("summary.total")}
+              <strong>
+                {shoppingRows.reduce((sum, row) => sum + row.seedCount, 0)} {t("summary.seeds")}
+              </strong>
               <span>
                 <strong>{totalSeedCosts} G 🪙</strong>
               </span>
@@ -315,7 +324,7 @@ export default function SeasonSummary({
           </section>
 
           <section className="season-summary-section">
-            <h3 className="season-summary-section-title">📈 Erwarteter Ertrag</h3>
+            <h3 className="season-summary-section-title">{t("summary.expectedYield")}</h3>
             <div className="season-summary-list">
               {yieldRows.map((row) => (
                 <article
@@ -328,7 +337,7 @@ export default function SeasonSummary({
                     <div className="season-summary-row-meta">
                       {row.plantNames.join(", ")}
                       {row.isCarryover && row.carryoverSeasonLabel
-                        ? ` · aus ${row.carryoverSeasonLabel}`
+                        ? ` · ${t("summary.from")} ${row.carryoverSeasonLabel}`
                         : ""}
                     </div>
                   </div>
@@ -339,10 +348,10 @@ export default function SeasonSummary({
 
             <div className="season-summary-total season-summary-total-stack">
               <span>
-                Ertrag: <strong>{Math.round(totalRevenue)} G</strong>
+                {t("summary.yield")} <strong>{Math.round(totalRevenue)} G</strong>
               </span>
               <span>
-                Gewinn: <strong>{Math.round(totalProfit)} G</strong>
+                {t("summary.profit")} <strong>{Math.round(totalProfit)} G</strong>
               </span>
             </div>
           </section>

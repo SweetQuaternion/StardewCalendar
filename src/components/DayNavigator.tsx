@@ -2,6 +2,7 @@ import "./DayNavigator.css";
 import type { Bed, Plant, SeasonId } from "../data/types";
 import { getDayTasks } from "../utils/calculations";
 import type { DayTask } from "../utils/calculations";
+import { useI18n } from "../contexts/I18nContext";
 
 interface DayNavigatorProps {
   currentDay: number;
@@ -34,13 +35,16 @@ export default function DayNavigator({
     bedsFromPrevSeason,
     agriculturist,
   );
+  const { t, language } = useI18n();
   const SEASON_LABELS: Record<SeasonId, string> = {
-    spring: "Frühling",
-    summer: "Sommer",
-    fall: "Herbst",
-    winter: "Winter",
+    spring: t("season.spring"),
+    summer: t("season.summer"),
+    fall: t("season.fall"),
+    winter: t("season.winter"),
   };
   const seasonLabel = SEASON_LABELS[selectedSeason] ?? selectedSeason;
+  const dateLabel =
+    language === "en" ? `${seasonLabel} ${currentDay}` : `${currentDay}. ${seasonLabel}`;
 
   return (
     <aside
@@ -64,9 +68,7 @@ export default function DayNavigator({
           ‹
         </button>
 
-        <div className="day-nav-heading">
-          {currentDay}. {seasonLabel}
-        </div>
+        <div className="day-nav-heading">{dateLabel}</div>
 
         <button
           type="button"
@@ -80,31 +82,41 @@ export default function DayNavigator({
 
       <div className="day-nav-tasks">
         {tasks.length === 0 ? (
-          <div className="day-nav-empty">Heute ist nichts zu tun. Genieße den Tag! 🌤️</div>
+          <div className="day-nav-empty">{t("day.noTasks")}</div>
         ) : (
-          tasks.map((t: DayTask) => {
+          tasks.map((t_val: DayTask) => {
             const textParts: string[] = [];
-            if (t.harvest && t.sow && t.harvest.id === t.sow.id) {
-              textParts.push(`${t.harvest.name} ernten und neu aussäen`);
+            const formatPattern = (patternKey: string, plantName: string) =>
+              t(patternKey).replace("{plant}", plantName);
+
+            if (t_val.harvest && t_val.sow && t_val.harvest.id === t_val.sow.id) {
+              const plantLabel = t(`plant.name.${t_val.harvest.id}`);
+              textParts.push(formatPattern("task.harvestAndResow", plantLabel));
             } else {
-              if (t.harvest) textParts.push(`${t.harvest.name} ernten`);
-              if (t.sow) textParts.push(`${t.sow.name} säen`);
+              if (t_val.harvest) {
+                const plantLabel = t(`plant.name.${t_val.harvest.id}`);
+                textParts.push(formatPattern("task.harvest", plantLabel));
+              }
+              if (t_val.sow) {
+                const plantLabel = t(`plant.name.${t_val.sow.id}`);
+                textParts.push(formatPattern("task.sow", plantLabel));
+              }
             }
 
             return (
               <div
-                key={t.bedId}
+                key={t_val.bedId}
                 className="day-nav-task-row"
-                onMouseEnter={() => onTaskHover?.(t.bedId)}
+                onMouseEnter={() => onTaskHover?.(t_val.bedId)}
                 onMouseLeave={() => onTaskHover?.(null)}
-                onClick={() => onTaskClick?.(t.bedId)}
+                onClick={() => onTaskClick?.(t_val.bedId)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") onTaskClick?.(t.bedId);
+                  if (e.key === "Enter" || e.key === " ") onTaskClick?.(t_val.bedId);
                 }}
               >
-                <div className="day-nav-task-bed">{t.bedName}</div>
+                <div className="day-nav-task-bed">{t_val.bedName}</div>
                 <div className="day-nav-task-text">{textParts.join(" · ")}</div>
               </div>
             );

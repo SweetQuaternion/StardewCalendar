@@ -8,7 +8,9 @@ import BedDialog from "./components/BedDialog.tsx";
 import BedCalendar from "./components/BedCalendar.tsx";
 import BedInfoPanel from "./components/BedInfoPanel.tsx";
 import SeasonSummary from "./components/SeasonSummary.tsx";
+import LanguagePicker from "./components/LanguagePicker.tsx";
 import useLocalStorage from "./hooks/useLocalStorage.ts";
+import { useI18n } from "./contexts/I18nContext.tsx";
 import { PLANTS } from "./data/plants.ts";
 import { prevSeason, calcGrowDays, isCarryover } from "./utils/calculations.ts";
 import {
@@ -23,6 +25,7 @@ import { NO_FERTILIZER as DEFAULT_FERTILIZER } from "./data/types.ts";
 type DialogMode = "create" | "rename" | "delete" | "action" | "collision";
 
 export default function App() {
+  const { t } = useI18n();
   const [selectedSeason, setSelectedSeason] = useLocalStorage<SeasonId>(
     "sdv-selected-season",
     "spring",
@@ -377,9 +380,7 @@ export default function App() {
       const last = prevBed.plantings[prevBed.plantings.length - 1];
       const plantPrev = PLANTS.find((p) => p.id === last.plantId);
       if (plantPrev && isCarryover(plantPrev, selectedSeason)) {
-        window.alert(
-          "🚫 Dieses Beet ist durch eine mehrjährige Pflanzung belegt und kann nicht bepflanzt werden.",
-        );
+        window.alert(t("alert.carryoverBlocked"));
         return;
       }
     }
@@ -437,7 +438,7 @@ export default function App() {
       return;
     }
 
-    window.alert("⚠️ Kein freier Pflanztag in dieser Saison gefunden.");
+    window.alert(t("calendar.noFreePlantingDay"));
   };
 
   /**
@@ -513,13 +514,11 @@ export default function App() {
       const parsed = parseSfpImportPayload(json);
 
       if (!parsed.ok) {
-        window.alert(`Import fehlgeschlagen: ${parsed.error}`);
+        window.alert(`${t("alert.importFailed")} ${parsed.error}`);
         return;
       }
 
-      const confirmOverwrite = window.confirm(
-        "Beim Import werden alle vorhandenen Farmdaten überschrieben. Möchtest du fortfahren?",
-      );
+      const confirmOverwrite = window.confirm(t("confirm.importOverwrite"));
       if (!confirmOverwrite) return;
 
       const seasonBeds = convertSfpToSeasonBeds(parsed.value);
@@ -532,7 +531,7 @@ export default function App() {
 
       window.location.reload();
     } catch {
-      window.alert("Import fehlgeschlagen: Die Datei ist kein gültiges JSON.");
+      window.alert(t("alert.importJsonError"));
     } finally {
       input.value = "";
     }
@@ -541,13 +540,17 @@ export default function App() {
   return (
     <div className="app-root">
       <header className="app-header">
-        <div className="app-title">🌾 Stardew Farm Planner</div>
+        <div className="flex-row">
+          <img className="app-logo" src="/plants/Starfruit.png" alt="App Logo" />
+          <div className="app-title">Stardew Farm Planner</div>
+        </div>
         <div className="header-actions">
+          <LanguagePicker />
           <button className="header-action-button" type="button" onClick={handleExport}>
-            💾 Export
+            💾 {t("header.export")}
           </button>
           <button className="header-action-button" type="button" onClick={handleImportClick}>
-            📂 Import
+            📂 {t("header.import")}
           </button>
           <input
             ref={importInputRef}
@@ -588,6 +591,7 @@ export default function App() {
             <BedInfoPanel
               bed={selectedBed}
               plants={PLANTS}
+              selectedSeason={selectedSeason}
               selectedDay={selectedCalendarDay}
               currentDay={currentDay}
               farmingLevel={farmingLevel}

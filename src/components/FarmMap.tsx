@@ -3,6 +3,7 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import type { Bed, FertilizerType, Plant, SeasonId } from "../data/types";
 import { FERTILIZERS, QUALITY_FERTILIZERS, RETAINING_FERTILIZERS } from "../data/fertilizers";
 import { bedsOverlap, isCarryover, prevSeason } from "../utils/calculations";
+import { useI18n } from "../contexts/I18nContext";
 import "./FarmMap.css";
 
 interface Props {
@@ -48,6 +49,7 @@ export default function FarmMap({
   farmingLevel,
   onFarmingLevelChange,
 }: Props) {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -98,10 +100,10 @@ export default function FarmMap({
     if (isCarryover(plant, currentSeason)) {
       const prevSeas = prevSeason(currentSeason);
       const seasonLabel = {
-        spring: "Frühling",
-        summer: "Sommer",
-        fall: "Herbst",
-        winter: "Winter",
+        spring: t("season.spring"),
+        summer: t("season.summer"),
+        fall: t("season.fall"),
+        winter: t("season.winter"),
       }[prevSeas];
       return { plant, prevSeasonLabel: seasonLabel };
     }
@@ -406,9 +408,9 @@ export default function FarmMap({
             return true;
           });
           const tooltipText = carryoverInfo
-            ? `🌽 ${carryoverInfo.plant.name} wächst noch (aus ${carryoverInfo.prevSeasonLabel})`
+            ? `🌽 ${t(`plant.name.${carryoverInfo.plant.id}`)} ${t("calendar.growsFrom")} ${carryoverInfo.prevSeasonLabel})`
             : displayPlants.length > 0
-              ? `${bed.name} · ${displayPlants.map((plant) => plant.name).join(", ")}`
+              ? `${bed.name} · ${displayPlants.map((plant) => t(`plant.name.${plant.id}`)).join(", ")}`
               : bed.name;
 
           return (
@@ -511,13 +513,13 @@ export default function FarmMap({
           <div className="farm-farming-level-control">
             <label htmlFor="farming-level-input" className="farm-farming-level-label">
               <span className="farm-farming-level-label-icon">🚜</span>
-              <span className="farm-farming-level-label-text">Stufe</span>
+              <span className="farm-farming-level-label-text">{t("farmMap.level")}</span>
             </label>
             <button
               className="farm-farming-level-button farm-farming-level-button-minus"
               onClick={() => onFarmingLevelChange(Math.max(0, farmingLevel - 1))}
               disabled={farmingLevel <= 0}
-              title="Stufe verringern"
+              title={t("farmMap.decreaseLevel")}
             >
               ‹
             </button>
@@ -533,12 +535,12 @@ export default function FarmMap({
                 }
               }}
               className="farm-farming-level-input"
-              title="Landwirt-Stufe"
+              title={t("farmMap.farmingLevel")}
             />
             <button
               className="farm-farming-level-button farm-farming-level-button-plus"
               onClick={() => onFarmingLevelChange(farmingLevel + 1)}
-              title="Stufe erhöhen"
+              title={t("farmMap.increaseLevel")}
             >
               ›
             </button>
@@ -550,15 +552,15 @@ export default function FarmMap({
               checked={agriculturist}
               onChange={(e) => onAgriculturistChange(e.target.checked)}
             />
-            <span>🌾 Landwirt</span>
+            <span>{t("farmMap.agriculturist")}</span>
           </label>
 
           <div className="farm-tool-row">
             <img
               className="farm-tool-source farm-tool-sprinkler-source"
               src="/Quality_Sprinkler.png"
-              alt="Quality Sprinkler"
-              title="Sprinkler ziehen und auf ein Beet fallen lassen"
+              alt={t("farmMap.sprinklerLabel")}
+              title={`${t("farmMap.sprinklerLabel")} ${t("farmMap.dragTipSuffix")}`}
               draggable={true}
               onDragStart={handleSprinklerDragStart}
             />
@@ -573,8 +575,8 @@ export default function FarmMap({
                       ? "/fertilizers/Deluxe_Speed-Gro.png"
                       : "/fertilizers/Hyper_Speed-Gro.png"
                 }
-                alt={entry.label}
-                title={`${entry.label} ziehen und auf ein Beet fallen lassen`}
+                alt={t(`fertilizer.${entry.id}`)}
+                title={`${t(`fertilizer.${entry.id}`)} ${t("farmMap.dragTipSuffix")}`}
                 draggable={true}
                 onDragStart={(e) =>
                   handleFertilizerDragStart({ category: "speed", type: entry.id }, e)
@@ -587,8 +589,8 @@ export default function FarmMap({
                 key={`quality-${entry.id}`}
                 className="farm-tool-source farm-tool-fertilizer-source"
                 src={`/fertilizers/${entry.imageFile}`}
-                alt={entry.label}
-                title={`${entry.label} ziehen und auf ein Beet fallen lassen`}
+                alt={t(`qualityFertilizer.${entry.id}`)}
+                title={`${t(`qualityFertilizer.${entry.id}`)} ${t("farmMap.dragTipSuffix")}`}
                 draggable={true}
                 onDragStart={(e) =>
                   handleFertilizerDragStart({ category: "quality", type: entry.id }, e)
@@ -601,8 +603,8 @@ export default function FarmMap({
                 key={`retaining-${entry.id}`}
                 className="farm-tool-source farm-tool-fertilizer-source"
                 src={`/fertilizers/${entry.imageFile}`}
-                alt={entry.label}
-                title={`${entry.label} ziehen und auf ein Beet fallen lassen`}
+                alt={t(`retainingFertilizer.${entry.id}`)}
+                title={`${t(`retainingFertilizer.${entry.id}`)} ${t("farmMap.dragTipSuffix")}`}
                 draggable={true}
                 onDragStart={(e) =>
                   handleFertilizerDragStart({ category: "retaining", type: entry.id }, e)

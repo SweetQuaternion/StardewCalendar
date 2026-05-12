@@ -1083,3 +1083,7 @@ Jeder Schritt ist einzeln an Copilot übergebbar und hinterlässt eine funktions
 3. Gedanken um mehrere Jahre machen
 
 4. "Hab ich schon" in der Einkaufsliste implementieren
+
+5. Ackerbauer hinzufügen (Nutzpflanzen sind 10% mehr wert)
+
+6. Alles nochmal auf Übersetzungsfehler prüfen

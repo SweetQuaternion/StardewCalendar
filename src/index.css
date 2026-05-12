@@ -39,6 +39,14 @@ body {
   box-shadow: 0 0.25em 0.5em rgba(0, 0, 0, 0.06);
   border-bottom: 0.0625em solid var(--color-border);
 }
+
+.app-logo {
+  height: 2.8em;
+  object-fit: contain;
+  margin-left: -0.5em;
+  margin-right: 1em;
+}
+
 .app-title {
   font-size: 1.4em;
   font-weight: 600;
@@ -51,6 +59,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5em;
+  position: relative;
 }
 
 .header-action-button {

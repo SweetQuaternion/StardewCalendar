@@ -1,7 +1,7 @@
 import type { Bed, Plant, Planting, SeasonId } from "../data/types";
 import { calcGrowDays, getHarvestDays, isCarryover, prevSeason } from "../utils/calculations";
-import { SEASONS } from "../data/seasons";
 import { useState, useEffect } from "react";
+import { useI18n } from "../contexts/I18nContext";
 import "./BedCalendar.css";
 
 interface Props {
@@ -37,6 +37,7 @@ export default function BedCalendar({
   draggedPlantId,
   agriculturist,
 }: Props) {
+  const { t, language } = useI18n();
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
   const [showReplaceDialog, setShowReplaceDialog] = useState(false);
   const [pendingPlanting, setPendingPlanting] = useState<{
@@ -68,7 +69,7 @@ export default function BedCalendar({
     if (!bed) return null;
 
     const prevSeasonId = prevSeason(selectedSeason);
-    const prevSeasonLabel = SEASONS.find((s) => s.id === prevSeasonId)?.label || "unbekannt";
+    const prevSeasonLabel = t(`season.${prevSeasonId}`);
     const prevBed = bedsFromPrevSeason.find((b) => b.id === bed.id);
 
     if (!prevBed || prevBed.plantings.length === 0) return null;
@@ -166,15 +167,13 @@ export default function BedCalendar({
 
       if (dayNumber + growDays - 1 > 28 && !growsIntoNextSeason) {
         alert(
-          `⚠️ Zu spät für diese Saison! ${draggedPlant.name} braucht ${growDays} Tage zum Wachsen.`,
+          `${t("calendar.tooLate")} ${t(`plant.name.${draggedPlant.id}`)} ${t("calendar.needsDays")} ${growDays} ${t("calendar.toGrow")}`,
         );
         return;
       }
 
       if (carryoverInfo) {
-        alert(
-          "🚫 Dieses Beet ist durch eine mehrjährige Pflanzung belegt und kann nicht umpflanzt werden.",
-        );
+        alert(t("calendar.multiYearBlocakage"));
         return;
       }
 
@@ -183,7 +182,7 @@ export default function BedCalendar({
         dayStatus?.type === "harvest" && dayStatus.plant.regrowDays === null;
 
       if (dayStatus && dayStatus.planting.id !== draggedPlanting.id && !canPlantOnHarvestDay) {
-        alert("🚫 Dieser Tag ist bereits belegt.");
+        alert(t("calendar.dayOccupied"));
         return;
       }
 
@@ -207,15 +206,15 @@ export default function BedCalendar({
       plant.seasons.includes(selectedSeason) && plant.seasons.includes(nextSeason);
     const growDays = calcGrowDays(plant, bed.fertilizer, agriculturist);
     if (dayNumber + growDays > 28 && !growsIntoNextSeason) {
-      alert(`⚠️ Zu spät für diese Saison! ${plant.name} braucht ${growDays} Tage zum Wachsen.`);
+      alert(
+        `${t("calendar.tooLate")} ${t(`plant.name.${plant.id}`)} ${t("calendar.needsDays")} ${growDays} ${t("calendar.toGrow")}`,
+      );
       return;
     }
 
     // Wenn Carry-over aktiv ist, kann man nicht pflanzen
     if (carryoverInfo) {
-      alert(
-        "🚫 Dieses Beet ist durch eine mehrjährige Pflanzung belegt und kann nicht umpflanzt werden.",
-      );
+      alert(t("calendar.multiYearBlocakage"));
       return;
     }
 
@@ -384,9 +383,7 @@ export default function BedCalendar({
   if (!bed) {
     return (
       <div className="bed-calendar-container">
-        <div className="bed-calendar-empty">
-          Wähle ein Beet auf der Karte aus, um es hier zu planen. 🌿
-        </div>
+        <div className="bed-calendar-empty">{t("calendar.selectBedCalendar")}</div>
       </div>
     );
   }
@@ -428,8 +425,10 @@ export default function BedCalendar({
               const isHarvest =
                 harvestDays.includes(dayNumber) || carryoverHarvestDays.includes(dayNumber);
               const tooltipText = dayStatus
-                ? `${dayStatus.plant.name}: ${dayStatus.type === "growth" ? "Wachstum" : dayStatus.type === "harvest" ? "Ernte ✂️" : "Nachwuchs"}`
-                : `Tag ${dayNumber}`;
+                ? `${t(`plant.name.${dayStatus.plant.id}`)}: ${dayStatus.type === "growth" ? t("calendar.type.growth") : dayStatus.type === "harvest" ? t("calendar.type.harvest") : t("calendar.type.regrow")}`
+                : language === "en"
+                  ? `${t(`season.${selectedSeason}`)} ${dayNumber}`
+                  : `${dayNumber}. ${t(`season.${selectedSeason}`)}`;
 
               return (
                 <div
@@ -462,7 +461,7 @@ export default function BedCalendar({
                   }
                   title={
                     mixedHarvestInfo
-                      ? `${mixedHarvestInfo.oldPlant.name} → ${mixedHarvestInfo.newPlant.name}`
+                      ? `${t(`plant.name.${mixedHarvestInfo.oldPlant.id}`)} → ${t(`plant.name.${mixedHarvestInfo.newPlant.id}`)}`
                       : tooltipText
                   }
                   onDragEnter={(e) => handleDragEnter(dayNumber, e)}
@@ -482,7 +481,7 @@ export default function BedCalendar({
                   {dayStatus && !isHarvest && dayStatus.plant.imageFile && (
                     <img
                       src={`/plants/${dayStatus.plant.imageFile}`}
-                      alt={dayStatus.plant.name}
+                      alt={t(`plant.name.${dayStatus.plant.id}`)}
                       className="bed-calendar-day-faded-plant-icon"
                     />
                   )}
@@ -497,7 +496,8 @@ export default function BedCalendar({
         {carryoverInfo && (
           <div className="bed-calendar-overlay">
             <div className="bed-calendar-overlay-badge">
-              🌽 {carryoverInfo.plant.name} wächst noch (aus {carryoverInfo.prevSeasonLabel})
+              🌽 {t(`plant.name.${carryoverInfo.plant.id}`)} {t("calendar.growsFrom")}{" "}
+              {carryoverInfo.prevSeasonLabel})
             </div>
           </div>
         )}
