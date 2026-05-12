@@ -1,19 +1,30 @@
 import type { FertilizerType, Plant, Planting, SeasonId } from "../data/types";
+import { NO_FERTILIZER } from "../data/types";
+import { QUALITY_FERTILIZER_LEVEL } from "../data/fertilizers";
 import { SEASON_DAYS, SEASON_ORDER } from "../data/seasons";
 
-const FERTILIZER_BONUS: Record<FertilizerType, number> = {
-  none: 0,
-  speed_gro: 0.1,
-  deluxe_speed_gro: 0.25,
-  hyper_speed_gro: 0.33,
-};
+function getFertilizerBonus(fertilizer: FertilizerType): number {
+  if (fertilizer.category === "speed") {
+    switch (fertilizer.type) {
+      case "speed_gro":
+        return 0.1;
+      case "deluxe_speed_gro":
+        return 0.25;
+      case "hyper_speed_gro":
+        return 0.33;
+      default:
+        return 0;
+    }
+  }
+  return 0;
+}
 
 export function calcGrowDays(
   plant: Plant,
   fertilizer: FertilizerType,
   agriculturist: boolean,
 ): number {
-  const bonus = FERTILIZER_BONUS[fertilizer] + (agriculturist ? 0.1 : 0);
+  const bonus = getFertilizerBonus(fertilizer) + (agriculturist ? 0.1 : 0);
 
   if (bonus <= 0) {
     return plant.growDays;
@@ -22,15 +33,101 @@ export function calcGrowDays(
   return Math.max(1, plant.growDays - Math.ceil(plant.growDays * bonus));
 }
 
+export interface QualityDistribution {
+  normal: number;
+  silver: number;
+  gold: number;
+  iridium: number;
+}
+
+const QUALITY_MULTIPLIER = {
+  normal: 1,
+  silver: 1.25,
+  gold: 1.5,
+  iridium: 2,
+} as const;
+
+function getQualityFertilizerLevel(fertilizer: FertilizerType): number {
+  if (fertilizer.category !== "quality") return 0;
+  return QUALITY_FERTILIZER_LEVEL[fertilizer.type] ?? 0;
+}
+
+export function calcQualityDistribution(
+  farmingLevel: number,
+  fertilizerLevel: number,
+): QualityDistribution {
+  const safeFarmingLevel = Number.isFinite(farmingLevel) ? Math.max(0, farmingLevel) : 0;
+  const safeFertilizerLevel = Number.isFinite(fertilizerLevel)
+    ? Math.max(0, Math.min(3, fertilizerLevel))
+    : 0;
+  const chanceGold = Math.min(
+    1,
+    0.2 * (safeFarmingLevel / 10) +
+      0.2 * safeFertilizerLevel * ((safeFarmingLevel + 2) / 12) +
+      0.01,
+  );
+  const chanceSilver = Math.min(0.75, chanceGold * 2);
+
+  if (safeFertilizerLevel === 3) {
+    const iridium = chanceGold / 2;
+    const gold = (1 - iridium) * chanceGold;
+    const silver = Math.max(0, 1 - iridium - gold);
+    return { normal: 0, silver, gold, iridium };
+  }
+
+  const gold = chanceGold;
+  const silver = (1 - chanceGold) * chanceSilver;
+  return { normal: Math.max(0, 1 - gold - silver), silver, gold, iridium: 0 };
+}
+
+export function expectedSellPrice(basePrice: number, dist: QualityDistribution): number {
+  if (!Number.isFinite(basePrice)) return 0;
+  return (
+    basePrice *
+    (dist.normal * QUALITY_MULTIPLIER.normal +
+      dist.silver * QUALITY_MULTIPLIER.silver +
+      dist.gold * QUALITY_MULTIPLIER.gold +
+      dist.iridium * QUALITY_MULTIPLIER.iridium)
+  );
+}
+
+export function calcExpectedHarvestValue(
+  plant: Plant,
+  fertilizer: FertilizerType,
+  farmingLevel: number,
+): number {
+  const fertilizerLevel = getQualityFertilizerLevel(fertilizer);
+  const qualityDistribution = calcQualityDistribution(farmingLevel, fertilizerLevel);
+  const oneFruitValue = expectedSellPrice(plant.sellPrice, qualityDistribution);
+
+  if (plant.yield <= 1) {
+    return oneFruitValue * plant.yield;
+  }
+
+  return oneFruitValue + (plant.yield - 1) * plant.sellPrice;
+}
+
+export function calcExpectedRevenue(
+  planting: Planting,
+  plant: Plant,
+  fertilizer?: FertilizerType,
+  farmingLevel = 0,
+  agriculturist = false,
+): number {
+  const harvestCount = getHarvestDays(planting, plant, fertilizer, agriculturist).length;
+  if (!Number.isFinite(harvestCount)) return 0;
+  return harvestCount * calcExpectedHarvestValue(plant, fertilizer ?? NO_FERTILIZER, farmingLevel);
+}
+
 /**
  * Letzter Pflanztag, damit Ernte noch in die Saison fällt
  */
 export function lastPlantDay(
   plant: Plant,
-  fertilizer: FertilizerType = "none",
+  fertilizer?: FertilizerType,
   agriculturist = false,
 ): number {
-  return SEASON_DAYS - calcGrowDays(plant, fertilizer, agriculturist) + 1;
+  return SEASON_DAYS - calcGrowDays(plant, fertilizer ?? NO_FERTILIZER, agriculturist) + 1;
 }
 
 /**
@@ -39,11 +136,11 @@ export function lastPlantDay(
 export function getHarvestDays(
   planting: Planting,
   plant: Plant,
-  fertilizer: FertilizerType = "none",
+  fertilizer?: FertilizerType,
   agriculturist = false,
 ): number[] {
   const days: number[] = [];
-  const growDays = calcGrowDays(plant, fertilizer, agriculturist);
+  const growDays = calcGrowDays(plant, fertilizer ?? NO_FERTILIZER, agriculturist);
   let harvest = planting.startDay + growDays;
   while (harvest <= SEASON_DAYS) {
     days.push(harvest);
@@ -59,7 +156,7 @@ export function getHarvestDays(
 export function calcRevenue(
   planting: Planting,
   plant: Plant,
-  fertilizer: FertilizerType = "none",
+  fertilizer?: FertilizerType,
   agriculturist = false,
 ): number {
   return (
@@ -75,7 +172,7 @@ export function calcRevenue(
 export function calcProfit(
   planting: Planting,
   plant: Plant,
-  fertilizer: FertilizerType = "none",
+  fertilizer?: FertilizerType,
   agriculturist = false,
 ): number {
   return calcRevenue(planting, plant, fertilizer, agriculturist) - plant.seedPrice;
@@ -156,7 +253,7 @@ export function getDayTasks(
       const plant = plantMap.get(planting.plantId);
       if (!plant) continue;
 
-      const harvestDays = getHarvestDays(planting, plant, bed.fertilizer ?? "none", agriculturist);
+      const harvestDays = getHarvestDays(planting, plant, bed.fertilizer, agriculturist);
       if (harvestDays.includes(day)) harvest = plant;
       if (planting.startDay === day) sow = plant;
     }
@@ -173,7 +270,7 @@ export function getDayTasks(
     const plant = plantMap.get(lastPlanting.plantId);
     if (!plant) continue;
     if (!isCarryover(plant, currentSeason)) continue;
-    const fertilizer = prevBed.fertilizer ?? "none";
+    const fertilizer = prevBed.fertilizer ?? NO_FERTILIZER;
 
     // compute harvest days that fall into current season
     const firstHarvestAbsolute =

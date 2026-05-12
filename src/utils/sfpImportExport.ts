@@ -1,4 +1,5 @@
 import type { Bed, FertilizerType, Planting, SeasonId } from "../data/types";
+import { NO_FERTILIZER } from "../data/types";
 
 const SEASONS: SeasonId[] = ["spring", "summer", "fall", "winter"];
 const SFP_FORMAT = "stardew-farm-planner";
@@ -36,12 +37,26 @@ function isValidNumber(value: unknown): value is number {
 }
 
 function isFertilizerType(value: unknown): value is FertilizerType {
-  return (
-    value === "none" ||
-    value === "speed_gro" ||
-    value === "deluxe_speed_gro" ||
-    value === "hyper_speed_gro"
-  );
+  if (!value || typeof value !== "object") return false;
+  const obj = value as Record<string, unknown>;
+  const category = obj.category;
+  const type = obj.type;
+
+  if (category === "speed") {
+    return (
+      type === "none" ||
+      type === "speed_gro" ||
+      type === "deluxe_speed_gro" ||
+      type === "hyper_speed_gro"
+    );
+  }
+  if (category === "quality") {
+    return type === "none" || type === "basic" || type === "quality" || type === "deluxe";
+  }
+  if (category === "retaining") {
+    return type === "none" || type === "basic" || type === "quality" || type === "deluxe";
+  }
+  return false;
 }
 
 function isSeasonId(value: unknown): value is SeasonId {
@@ -186,7 +201,7 @@ export function parseSfpImportPayload(value: unknown): ParseResult<SfpFile> {
     beds.push({
       ...bed,
       sprinklers: typeof bed.sprinklers === "number" ? bed.sprinklers : 0,
-      fertilizer: isFertilizerType(bed.fertilizer) ? bed.fertilizer : "none",
+      fertilizer: isFertilizerType(bed.fertilizer) ? bed.fertilizer : NO_FERTILIZER,
     });
   }
 

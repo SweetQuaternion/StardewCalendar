@@ -1082,6 +1082,4 @@ Jeder Schritt ist einzeln an Copilot übergebbar und hinterlässt eine funktions
 
 3. Gedanken um mehrere Jahre machen
 
-4. Qualität der Pflanzen probabilistisch
-
-5. "Hab ich schon" in der Einkaufsliste implementieren
+4. "Hab ich schon" in der Einkaufsliste implementieren

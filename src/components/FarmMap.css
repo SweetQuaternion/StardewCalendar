@@ -294,6 +294,88 @@
   height: 0.95em;
 }
 
+.farm-farming-level-control {
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+  font-size: 0.85em;
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.78);
+  border: 0.06em solid var(--color-border);
+  border-radius: 0.4em;
+  padding: 0.25em 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.farm-farming-level-label {
+  display: flex;
+  align-items: center;
+  margin-right: 0.1em;
+}
+
+.farm-farming-level-label-icon {
+  margin-right: 0.5em;
+}
+
+.farm-farming-level-button {
+  width: 1em;
+  height: 1em;
+  border: none;
+  background: color-mix(in srgb, var(--color-panel) 70%, transparent);
+  font-size: 1.15em;
+  color: var(--color-text);
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-0.08em);
+  transition:
+    box-shadow 0.16s ease,
+    transform 0.12s ease,
+    background 0.12s ease;
+}
+
+.farm-farming-level-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-panel));
+  box-shadow: 0 0em 0.6em rgba(74, 55, 40, 0.06);
+}
+
+.farm-farming-level-button:active:not(:disabled) {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.farm-farming-level-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.farm-farming-level-input {
+  flex: 0 0 auto;
+  justify-content: center;
+  width: 2em;
+  height: 0.95em;
+  padding: 0.1em 0.2em;
+  font-size: 0.85em;
+  text-align: center;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+/* Remove spinner buttons für number input */
+.farm-farming-level-input::-webkit-outer-spin-button,
+.farm-farming-level-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.farm-farming-level-input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
 .farm-tool-row {
   display: flex;
   align-items: flex-end;

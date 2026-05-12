@@ -18,6 +18,7 @@ import {
 } from "./utils/sfpImportExport.ts";
 import DayNavigator from "./components/DayNavigator";
 import type { SeasonId, Bed, FertilizerType } from "./data/types.ts";
+import { NO_FERTILIZER as DEFAULT_FERTILIZER } from "./data/types.ts";
 
 type DialogMode = "create" | "rename" | "delete" | "action" | "collision";
 
@@ -32,6 +33,7 @@ export default function App() {
   const [draggedPlantId, setDraggedPlantId] = useState<string | null>(null);
   const [hoveredBedId, setHoveredBedId] = useState<string | null>(null);
   const [agriculturist, setAgriculturist] = useLocalStorage<boolean>("sdv-agriculturist", false);
+  const [farmingLevel, setFarmingLevel] = useLocalStorage<number>("sdv-farming-level", 0);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const seasonOrder: SeasonId[] = ["spring", "summer", "fall", "winter"];
 
@@ -70,6 +72,48 @@ export default function App() {
     }
   };
 
+  const normalizeFertilizer = (fertilizer: unknown): Bed["fertilizer"] => {
+    if (!fertilizer || typeof fertilizer !== "object") {
+      return DEFAULT_FERTILIZER;
+    }
+
+    const candidate = fertilizer as { category?: unknown; type?: unknown };
+    if (candidate.category === "speed") {
+      if (
+        candidate.type === "none" ||
+        candidate.type === "speed_gro" ||
+        candidate.type === "deluxe_speed_gro" ||
+        candidate.type === "hyper_speed_gro"
+      ) {
+        return { category: "speed", type: candidate.type };
+      }
+    }
+
+    if (candidate.category === "quality") {
+      if (
+        candidate.type === "none" ||
+        candidate.type === "basic" ||
+        candidate.type === "quality" ||
+        candidate.type === "deluxe"
+      ) {
+        return { category: "quality", type: candidate.type };
+      }
+    }
+
+    if (candidate.category === "retaining") {
+      if (
+        candidate.type === "none" ||
+        candidate.type === "basic" ||
+        candidate.type === "quality" ||
+        candidate.type === "deluxe"
+      ) {
+        return { category: "retaining", type: candidate.type };
+      }
+    }
+
+    return DEFAULT_FERTILIZER;
+  };
+
   /**
    * Normalisiere alte Beete-Struktur zu neuer Struktur
    */
@@ -79,7 +123,7 @@ export default function App() {
       return {
         ...bed,
         sprinklers: typeof bed.sprinklers === "number" ? bed.sprinklers : 0,
-        fertilizer: bed.fertilizer ?? "none",
+        fertilizer: normalizeFertilizer(bed.fertilizer),
         plantings: bed.planting ? [bed.planting] : [],
       };
     }
@@ -88,14 +132,14 @@ export default function App() {
       return {
         ...bed,
         sprinklers: typeof bed.sprinklers === "number" ? bed.sprinklers : 0,
-        fertilizer: bed.fertilizer ?? "none",
+        fertilizer: normalizeFertilizer(bed.fertilizer),
         plantings: [],
       };
     }
     return {
       ...bed,
       sprinklers: typeof bed.sprinklers === "number" ? bed.sprinklers : 0,
-      fertilizer: bed.fertilizer ?? "none",
+      fertilizer: normalizeFertilizer(bed.fertilizer),
     };
   };
 
@@ -166,6 +210,29 @@ export default function App() {
           }
         : bed,
     );
+    setCurrentSeasonBeds(updated);
+  };
+
+  /**
+   * Pflanzung in Beet setzen
+   */
+  const handlePlantingSet = (bedId: string, plantId: string, startDay: number) => {
+    const updated = currentBeds.map((bed) => {
+      if (bed.id === bedId) {
+        return {
+          ...bed,
+          plantings: [
+            ...bed.plantings,
+            {
+              id: crypto.randomUUID(),
+              plantId,
+              startDay,
+            },
+          ],
+        };
+      }
+      return bed;
+    });
     setCurrentSeasonBeds(updated);
   };
 
@@ -241,7 +308,7 @@ export default function App() {
         width: pendingBedData.width,
         height: pendingBedData.height,
         sprinklers: 0,
-        fertilizer: "none",
+        fertilizer: DEFAULT_FERTILIZER,
         plantings: [],
       };
       setBedLayoutsForAllSeasons((beds) => [...beds, newBed]);
@@ -295,29 +362,6 @@ export default function App() {
       setSelectedBedId(null);
       setDialogOpen(false);
     }
-  };
-
-  /**
-   * Pflanzung in Beet setzen
-   */
-  const handlePlantingSet = (bedId: string, plantId: string, startDay: number) => {
-    const updated = currentBeds.map((bed) => {
-      if (bed.id === bedId) {
-        return {
-          ...bed,
-          plantings: [
-            ...bed.plantings,
-            {
-              id: crypto.randomUUID(),
-              plantId,
-              startDay,
-            },
-          ],
-        };
-      }
-      return bed;
-    });
-    setCurrentSeasonBeds(updated);
   };
 
   /**
@@ -546,6 +590,7 @@ export default function App() {
               plants={PLANTS}
               selectedDay={selectedCalendarDay}
               currentDay={currentDay}
+              farmingLevel={farmingLevel}
               agriculturist={agriculturist}
             />
             <aside className="season-overview-panel placeholder">
@@ -580,6 +625,8 @@ export default function App() {
               plants={PLANTS}
               agriculturist={agriculturist}
               onAgriculturistChange={setAgriculturist}
+              farmingLevel={farmingLevel}
+              onFarmingLevelChange={setFarmingLevel}
             />
           </section>
         </main>
@@ -590,6 +637,7 @@ export default function App() {
             bedsFromPrevSeason={prevSeasonBeds}
             selectedSeason={selectedSeason}
             plants={PLANTS}
+            farmingLevel={farmingLevel}
             agriculturist={agriculturist}
           />
         </aside>

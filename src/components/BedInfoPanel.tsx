@@ -1,8 +1,10 @@
 import type { Bed, Plant } from "../data/types";
-import { FERTILIZERS } from "../data/fertilizers";
+import { FERTILIZERS, QUALITY_FERTILIZER_LEVEL } from "../data/fertilizers";
 import {
   calcGrowDays,
-  calcRevenue,
+  calcExpectedHarvestValue,
+  calcExpectedRevenue,
+  calcQualityDistribution,
   getBedEffectiveArea,
   getHarvestDays,
 } from "../utils/calculations";
@@ -13,6 +15,7 @@ interface BedInfoPanelProps {
   plants: Plant[];
   selectedDay: number | null;
   currentDay: number;
+  farmingLevel: number;
   agriculturist: boolean;
 }
 
@@ -21,6 +24,7 @@ export default function BedInfoPanel({
   plants,
   selectedDay,
   currentDay,
+  farmingLevel,
   agriculturist,
 }: BedInfoPanelProps) {
   if (!bed) {
@@ -56,15 +60,26 @@ export default function BedInfoPanel({
       : null;
 
   const plant = planting ? (plants.find((entry) => entry.id === planting.plantId) ?? null) : null;
-  const fertilizer = FERTILIZERS.find((entry) => entry.id === bed.fertilizer) ?? null;
+  const fertilizer =
+    bed.fertilizer.category === "speed"
+      ? FERTILIZERS.find((entry) => entry.id === bed.fertilizer.type)
+      : null;
+  const qualityFertilizerLevel =
+    bed.fertilizer.category === "quality" ? QUALITY_FERTILIZER_LEVEL[bed.fertilizer.type] : 0;
+  const qualityDistribution = calcQualityDistribution(farmingLevel, qualityFertilizerLevel);
   const harvestDays =
     plant && planting ? getHarvestDays(planting, plant, bed.fertilizer, agriculturist) : [];
   const harvestCount = harvestDays.length;
   const bedSize = getBedEffectiveArea(bed);
   const totalRevenue =
-    plant && planting ? calcRevenue(planting, plant, bed.fertilizer, agriculturist) * bedSize : 0;
+    plant && planting
+      ? calcExpectedRevenue(planting, plant, bed.fertilizer, farmingLevel, agriculturist) * bedSize
+      : 0;
+  const expectedHarvestValue =
+    plant && planting ? calcExpectedHarvestValue(plant, bed.fertilizer, farmingLevel) : 0;
   const seedCosts = plant ? plant.seedPrice * bedSize : 0;
   const totalProfit = totalRevenue - seedCosts;
+  const showQualityHint = qualityFertilizerLevel === 0 && farmingLevel === 0;
 
   return (
     <aside className="bed-info-panel">
@@ -101,9 +116,22 @@ export default function BedInfoPanel({
           <div className="bed-info-section">
             <h4>Ertrag</h4>
             <p className="bed-info-revenue">
-              {harvestCount} Ernten × {plant.yield} Stk. × {plant.sellPrice} G × {bedSize} Kästchen
-              = <strong>{totalRevenue} G</strong>
+              {harvestCount} Ernten × ∅ {Math.round(expectedHarvestValue)} G × {bedSize} Kästchen ={" "}
+              <strong>{Math.round(totalRevenue)} G</strong>
             </p>
+            <p className="bed-info-fertilizer-meta">
+              ⭐ {Math.round(qualityDistribution.normal * 100)}% · ⭐⭐{" "}
+              {Math.round(qualityDistribution.silver * 100)}% · ⭐⭐⭐{" "}
+              {Math.round(qualityDistribution.gold * 100)}%
+              {qualityDistribution.iridium > 0
+                ? ` · 💎 ${Math.round(qualityDistribution.iridium * 100)}%`
+                : ""}
+            </p>
+            {showQualityHint && (
+              <p className="bed-info-fertilizer-meta">
+                Mit höherem Farming-Level oder Dünger steigt die Qualität.
+              </p>
+            )}
           </div>
 
           <div className="bed-info-section">
@@ -115,7 +143,8 @@ export default function BedInfoPanel({
           <div className="bed-info-section">
             <h4>Gewinn</h4>
             <p className="bed-info-profit">
-              {totalRevenue} − {seedCosts} = <strong>{totalProfit} G</strong>
+              {Math.round(totalRevenue)} − {seedCosts} ={" "}
+              <strong>{Math.round(totalProfit)} G</strong>
             </p>
           </div>
         </>

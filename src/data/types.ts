@@ -1,9 +1,18 @@
 export type SeasonId = "spring" | "summer" | "fall" | "winter";
 
-export type FertilizerType = "none" | "speed_gro" | "deluxe_speed_gro" | "hyper_speed_gro";
+export type SpeedFertilizerType = "none" | "speed_gro" | "deluxe_speed_gro" | "hyper_speed_gro";
+export type QualityFertilizerType = "none" | "basic" | "quality" | "deluxe";
+export type RetainingFertilizerType = "none" | "basic" | "quality" | "deluxe";
+
+export type FertilizerType =
+  | { category: "speed"; type: SpeedFertilizerType }
+  | { category: "quality"; type: QualityFertilizerType }
+  | { category: "retaining"; type: RetainingFertilizerType };
+
+export const NO_FERTILIZER: FertilizerType = { category: "speed", type: "none" };
 
 export interface Fertilizer {
-  id: FertilizerType;
+  id: SpeedFertilizerType;
   label: string;
   bonus: number;
   color: string;

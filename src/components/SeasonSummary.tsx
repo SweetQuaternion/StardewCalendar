@@ -1,12 +1,13 @@
 import type { Bed, Plant, Planting, SeasonId } from "../data/types";
 import {
   calcGrowDays,
-  calcRevenue,
+  calcExpectedHarvestValue,
+  calcExpectedRevenue,
   getBedEffectiveArea,
   isCarryover,
   prevSeason,
 } from "../utils/calculations";
-import { FERTILIZERS } from "../data/fertilizers";
+import { FERTILIZERS, QUALITY_FERTILIZERS, RETAINING_FERTILIZERS } from "../data/fertilizers";
 import "./SeasonSummary.css";
 
 interface SeasonSummaryProps {
@@ -14,6 +15,7 @@ interface SeasonSummaryProps {
   bedsFromPrevSeason: Bed[];
   selectedSeason: SeasonId;
   plants: Plant[];
+  farmingLevel: number;
   agriculturist?: boolean;
 }
 
@@ -43,6 +45,7 @@ function calcCarryoverHarvestRevenue(
   planting: Planting,
   plant: Plant,
   fertilizer: Bed["fertilizer"],
+  farmingLevel: number,
   agriculturist: boolean,
 ): number {
   const harvestDays: number[] = [];
@@ -60,7 +63,7 @@ function calcCarryoverHarvestRevenue(
     harvestDay += plant.regrowDays;
   }
 
-  return harvestDays.length * plant.yield * plant.sellPrice;
+  return harvestDays.length * calcExpectedHarvestValue(plant, fertilizer, farmingLevel);
 }
 
 export default function SeasonSummary({
@@ -68,6 +71,7 @@ export default function SeasonSummary({
   bedsFromPrevSeason,
   selectedSeason,
   plants,
+  farmingLevel,
   agriculturist = false,
 }: SeasonSummaryProps) {
   const plantMap = new Map(plants.map((plant) => [plant.id, plant]));
@@ -129,15 +133,65 @@ export default function SeasonSummary({
   // Fertilizer counts (per tile) - sum effective area of beds using each fertilizer
   const fertilizerMap = new Map<string, number>();
   for (const bed of beds) {
-    if (!bed.fertilizer || bed.fertilizer === "none") continue;
+    if (bed.fertilizer.type === "none") continue;
     const qty = getBedEffectiveArea(bed);
-    fertilizerMap.set(bed.fertilizer, (fertilizerMap.get(bed.fertilizer) ?? 0) + qty);
+    const key = `${bed.fertilizer.category}-${bed.fertilizer.type}`;
+    fertilizerMap.set(key, (fertilizerMap.get(key) ?? 0) + qty);
   }
-  const fertilizerRows = Array.from(fertilizerMap.entries()).map(([id, count]) => ({
-    id,
-    count,
-    label: FERTILIZERS.find((f) => f.id === id)?.label ?? id,
-  }));
+
+  type FertilizerRow = {
+    key: string;
+    count: number;
+    label: string;
+    imageFile: string;
+    category: "speed" | "quality" | "retaining";
+  };
+
+  const fertilizerRows: FertilizerRow[] = Array.from(fertilizerMap.entries())
+    .map(([key, count]) => {
+      const [category, type] = key.split("-");
+      if (category === "speed") {
+        const fert = FERTILIZERS.find((f) => f.id === type);
+        if (!fert) return null;
+        const imagePath =
+          type === "speed_gro"
+            ? "Speed-Gro.png"
+            : type === "deluxe_speed_gro"
+              ? "Deluxe_Speed-Gro.png"
+              : "Hyper_Speed-Gro.png";
+        return {
+          key,
+          count,
+          label: fert.label,
+          imageFile: imagePath,
+          category: "speed" as const,
+        };
+      }
+      if (category === "quality") {
+        const fert = QUALITY_FERTILIZERS.find((f) => f.id === type);
+        if (!fert || fert.imageFile === "") return null;
+        return {
+          key,
+          count,
+          label: fert.label,
+          imageFile: fert.imageFile,
+          category: "quality" as const,
+        };
+      }
+      if (category === "retaining") {
+        const fert = RETAINING_FERTILIZERS.find((f) => f.id === type);
+        if (!fert || fert.imageFile === "") return null;
+        return {
+          key,
+          count,
+          label: fert.label,
+          imageFile: fert.imageFile,
+          category: "retaining" as const,
+        };
+      }
+      return null;
+    })
+    .filter((row): row is FertilizerRow => row !== null);
 
   const yieldRows = [
     ...beds
@@ -155,7 +209,13 @@ export default function SeasonSummary({
           revenue: bedPlantings.reduce(
             (sum, entry) =>
               sum +
-              calcRevenue(entry.planting, entry.plant, bed.fertilizer, agriculturist) *
+              calcExpectedRevenue(
+                entry.planting,
+                entry.plant,
+                bed.fertilizer,
+                farmingLevel,
+                agriculturist,
+              ) *
                 getBedEffectiveArea(bed),
             0,
           ),
@@ -172,6 +232,7 @@ export default function SeasonSummary({
           entry.planting,
           entry.plant,
           entry.bed.fertilizer,
+          farmingLevel,
           agriculturist,
         ) * getBedEffectiveArea(entry.bed),
       isCarryover: true,
@@ -221,18 +282,17 @@ export default function SeasonSummary({
                     <div className="season-summary-row-total">{row.seedCount} Samen</div>
                   </article>
                 ))}
-
                 {fertilizerRows.length > 0 &&
                   fertilizerRows.map((f) => (
-                    <article key={f.id} className="season-summary-row">
+                    <article key={f.key} className="season-summary-row">
                       <img
                         className="season-summary-image"
                         src={
-                          f.id === "speed_gro"
-                            ? "/fertilizer/Speed-Gro.png"
-                            : f.id === "deluxe_speed_gro"
-                              ? "/fertilizer/Deluxe_Speed-Gro.png"
-                              : "/fertilizer/Hyper_Speed-Gro.png"
+                          f.category === "speed"
+                            ? `/fertilizers/${f.imageFile}`
+                            : f.category === "quality"
+                              ? `/fertilizers/${f.imageFile}`
+                              : `/fertilizers/${f.imageFile}`
                         }
                         alt={f.label}
                       />
@@ -272,17 +332,17 @@ export default function SeasonSummary({
                         : ""}
                     </div>
                   </div>
-                  <div className="season-summary-row-total">{row.revenue} G</div>
+                  <div className="season-summary-row-total">{Math.round(row.revenue)} G</div>
                 </article>
               ))}
             </div>
 
             <div className="season-summary-total season-summary-total-stack">
               <span>
-                Ertrag: <strong>{totalRevenue} G</strong>
+                Ertrag: <strong>{Math.round(totalRevenue)} G</strong>
               </span>
               <span>
-                Gewinn: <strong>{totalProfit} G</strong>
+                Gewinn: <strong>{Math.round(totalProfit)} G</strong>
               </span>
             </div>
           </section>

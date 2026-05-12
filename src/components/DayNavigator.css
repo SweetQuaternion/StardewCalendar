@@ -21,11 +21,17 @@
   background: color-mix(in srgb, var(--color-panel) 70%, transparent);
   border-radius: 0.45em;
   font-size: 1.15em;
+  color: var(--color-text);
   cursor: pointer;
   transition:
     box-shadow 0.16s ease,
     transform 0.12s ease,
     background 0.12s ease;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-0.2em);
 }
 
 .day-nav-arrow:disabled {

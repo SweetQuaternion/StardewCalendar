@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import type { Bed, FertilizerType, Plant, SeasonId } from "../data/types";
-import { FERTILIZERS } from "../data/fertilizers";
+import { FERTILIZERS, QUALITY_FERTILIZERS, RETAINING_FERTILIZERS } from "../data/fertilizers";
 import { bedsOverlap, isCarryover, prevSeason } from "../utils/calculations";
 import "./FarmMap.css";
 
@@ -22,6 +22,8 @@ interface Props {
   plants: Plant[];
   agriculturist: boolean;
   onAgriculturistChange: (value: boolean) => void;
+  farmingLevel: number;
+  onFarmingLevelChange: (value: number) => void;
 }
 
 const CELL_SIZE = 2; // em
@@ -43,6 +45,8 @@ export default function FarmMap({
   agriculturist,
   onAgriculturistChange,
   onPlantDropToBed,
+  farmingLevel,
+  onFarmingLevelChange,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -265,7 +269,7 @@ export default function FarmMap({
     fertilizer: FertilizerType,
     e: React.DragEvent<HTMLImageElement>,
   ) => {
-    e.dataTransfer.setData("application/x-sdv-fertilizer", fertilizer);
+    e.dataTransfer.setData("application/x-sdv-fertilizer", JSON.stringify(fertilizer));
     e.dataTransfer.effectAllowed = "copy";
   };
 
@@ -330,9 +334,12 @@ export default function FarmMap({
     }
 
     if (e.dataTransfer.types.includes("application/x-sdv-fertilizer")) {
-      const fertilizer = e.dataTransfer.getData("application/x-sdv-fertilizer") as FertilizerType;
-      if (fertilizer) {
+      const fertilizerJson = e.dataTransfer.getData("application/x-sdv-fertilizer");
+      try {
+        const fertilizer = JSON.parse(fertilizerJson) as FertilizerType;
         onFertilizerDrop(bedId, fertilizer);
+      } catch {
+        // ignore parse error
       }
     }
   };
@@ -443,24 +450,36 @@ export default function FarmMap({
                   />
                 </div>
               )}
-              {bed.fertilizer !== "none" && (
+              {bed.fertilizer.type !== "none" && (
                 <div
                   className="farm-bed-fertilizer-badge"
-                  title={`${FERTILIZERS.find((entry) => entry.id === bed.fertilizer)?.label ?? "Dünger"} · Klick zum Entfernen`}
+                  title="Klick zum Entfernen"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onFertilizerDrop(bed.id, "none");
+                    onFertilizerDrop(bed.id, { category: bed.fertilizer.category, type: "none" });
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                 >
                   <img
                     className="farm-bed-fertilizer-icon"
                     src={
-                      bed.fertilizer === "speed_gro"
-                        ? "/fertilizer/Speed-Gro.png"
-                        : bed.fertilizer === "deluxe_speed_gro"
-                          ? "/fertilizer/Deluxe_Speed-Gro.png"
-                          : "/fertilizer/Hyper_Speed-Gro.png"
+                      bed.fertilizer.category === "speed"
+                        ? bed.fertilizer.type === "speed_gro"
+                          ? "/fertilizers/Speed-Gro.png"
+                          : bed.fertilizer.type === "deluxe_speed_gro"
+                            ? "/fertilizers/Deluxe_Speed-Gro.png"
+                            : "/fertilizers/Hyper_Speed-Gro.png"
+                        : bed.fertilizer.category === "quality"
+                          ? bed.fertilizer.type === "basic"
+                            ? "/fertilizers/Basic_Fertilizer.png"
+                            : bed.fertilizer.type === "quality"
+                              ? "/fertilizers/Quality_Fertilizer.png"
+                              : "/fertilizers/Deluxe_Fertilizer.png"
+                          : bed.fertilizer.type === "basic"
+                            ? "/fertilizers/Basic_Retaining_Soil.png"
+                            : bed.fertilizer.type === "quality"
+                              ? "/fertilizers/Quality_Retaining_Soil.png"
+                              : "/fertilizers/Deluxe_Retaining_Soil.png"
                     }
                     alt=""
                     aria-hidden="true"
@@ -489,6 +508,42 @@ export default function FarmMap({
         )}
 
         <div className="farm-tool-palette" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="farm-farming-level-control">
+            <label htmlFor="farming-level-input" className="farm-farming-level-label">
+              <span className="farm-farming-level-label-icon">🚜</span>
+              <span className="farm-farming-level-label-text">Stufe</span>
+            </label>
+            <button
+              className="farm-farming-level-button farm-farming-level-button-minus"
+              onClick={() => onFarmingLevelChange(Math.max(0, farmingLevel - 1))}
+              disabled={farmingLevel <= 0}
+              title="Stufe verringern"
+            >
+              ‹
+            </button>
+            <input
+              id="farming-level-input"
+              type="number"
+              min="0"
+              value={farmingLevel}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                if (!Number.isNaN(val) && val >= 0) {
+                  onFarmingLevelChange(val);
+                }
+              }}
+              className="farm-farming-level-input"
+              title="Landwirt-Stufe"
+            />
+            <button
+              className="farm-farming-level-button farm-farming-level-button-plus"
+              onClick={() => onFarmingLevelChange(farmingLevel + 1)}
+              title="Stufe erhöhen"
+            >
+              ›
+            </button>
+          </div>
+
           <label className="farm-agriculturist-toggle">
             <input
               type="checkbox"
@@ -497,6 +552,7 @@ export default function FarmMap({
             />
             <span>🌾 Landwirt</span>
           </label>
+
           <div className="farm-tool-row">
             <img
               className="farm-tool-source farm-tool-sprinkler-source"
@@ -512,15 +568,45 @@ export default function FarmMap({
                 className="farm-tool-source farm-tool-fertilizer-source"
                 src={
                   entry.id === "speed_gro"
-                    ? "/fertilizer/Speed-Gro.png"
+                    ? "/fertilizers/Speed-Gro.png"
                     : entry.id === "deluxe_speed_gro"
-                      ? "/fertilizer/Deluxe_Speed-Gro.png"
-                      : "/fertilizer/Hyper_Speed-Gro.png"
+                      ? "/fertilizers/Deluxe_Speed-Gro.png"
+                      : "/fertilizers/Hyper_Speed-Gro.png"
                 }
                 alt={entry.label}
                 title={`${entry.label} ziehen und auf ein Beet fallen lassen`}
                 draggable={true}
-                onDragStart={(e) => handleFertilizerDragStart(entry.id, e)}
+                onDragStart={(e) =>
+                  handleFertilizerDragStart({ category: "speed", type: entry.id }, e)
+                }
+              />
+            ))}
+
+            {QUALITY_FERTILIZERS.filter((entry) => entry.id !== "none").map((entry) => (
+              <img
+                key={`quality-${entry.id}`}
+                className="farm-tool-source farm-tool-fertilizer-source"
+                src={`/fertilizers/${entry.imageFile}`}
+                alt={entry.label}
+                title={`${entry.label} ziehen und auf ein Beet fallen lassen`}
+                draggable={true}
+                onDragStart={(e) =>
+                  handleFertilizerDragStart({ category: "quality", type: entry.id }, e)
+                }
+              />
+            ))}
+
+            {RETAINING_FERTILIZERS.filter((entry) => entry.id !== "none").map((entry) => (
+              <img
+                key={`retaining-${entry.id}`}
+                className="farm-tool-source farm-tool-fertilizer-source"
+                src={`/fertilizers/${entry.imageFile}`}
+                alt={entry.label}
+                title={`${entry.label} ziehen und auf ein Beet fallen lassen`}
+                draggable={true}
+                onDragStart={(e) =>
+                  handleFertilizerDragStart({ category: "retaining", type: entry.id }, e)
+                }
               />
             ))}
           </div>
