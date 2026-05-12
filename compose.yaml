@@ -1,0 +1,10 @@
+services:
+  nginx:
+    image: stardew-kalender:latest
+    restart: unless-stopped
+    container_name: stardew-kalender
+    hostname: stardewkalender
+    ports:
+      - "3457:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro

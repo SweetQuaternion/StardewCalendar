@@ -79,7 +79,6 @@ export default function BedInfoPanel({
     plant && planting ? calcExpectedHarvestValue(plant, bed.fertilizer, farmingLevel) : 0;
   const seedCosts = plant ? plant.seedPrice * bedSize : 0;
   const totalProfit = totalRevenue - seedCosts;
-  const showQualityHint = qualityFertilizerLevel === 0 && farmingLevel === 0;
 
   return (
     <aside className="bed-info-panel">
@@ -127,11 +126,6 @@ export default function BedInfoPanel({
                 ? ` · 💎 ${Math.round(qualityDistribution.iridium * 100)}%`
                 : ""}
             </p>
-            {showQualityHint && (
-              <p className="bed-info-fertilizer-meta">
-                Mit höherem Farming-Level oder Dünger steigt die Qualität.
-              </p>
-            )}
           </div>
 
           <div className="bed-info-section">

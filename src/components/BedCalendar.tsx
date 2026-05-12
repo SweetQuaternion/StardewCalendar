@@ -206,7 +206,7 @@ export default function BedCalendar({
     const growsIntoNextSeason =
       plant.seasons.includes(selectedSeason) && plant.seasons.includes(nextSeason);
     const growDays = calcGrowDays(plant, bed.fertilizer, agriculturist);
-    if (dayNumber + growDays - 1 > 28 && !growsIntoNextSeason) {
+    if (dayNumber + growDays > 28 && !growsIntoNextSeason) {
       alert(`⚠️ Zu spät für diese Saison! ${plant.name} braucht ${growDays} Tage zum Wachsen.`);
       return;
     }
@@ -232,9 +232,24 @@ export default function BedCalendar({
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const isPlantingDrag =
-      e.dataTransfer.types.includes("plantingId") || e.dataTransfer.types.includes("text/plain");
-    e.dataTransfer.dropEffect = isPlantingDrag ? "move" : "copy";
+    // Versuche text/plain zu lesen um zu unterscheiden zwischen Planting (move) und Plant (copy)
+    const textData = e.dataTransfer.getData("text/plain");
+    const isPlantingDrag = textData.startsWith("planting:");
+    const dropEffect = isPlantingDrag ? "move" : "copy";
+    e.dataTransfer.dropEffect = dropEffect;
+  };
+
+  const handleGridDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    // Prüfe zuerst, ob das Target selbst ein data-day Element ist
+    let targetDayElement = e.target as HTMLElement | null;
+    if (!targetDayElement?.getAttribute("data-day")) {
+      // Sonst suche das nächste parent mit data-day
+      targetDayElement = targetDayElement?.closest("[data-day]") as HTMLElement | null;
+    }
+    const dayValue = targetDayElement?.getAttribute("data-day");
+    if (!dayValue) return;
+
+    handleDrop(Number(dayValue), e);
   };
 
   const handleDragEnter = (dayNumber: number, e: React.DragEvent<HTMLDivElement>) => {
@@ -390,7 +405,11 @@ export default function BedCalendar({
           </div>
 
           {/* Kalender-Grid: 4 Wochen */}
-          <div className="bed-calendar-grid">
+          <div
+            className="bed-calendar-grid"
+            onDropCapture={handleGridDrop}
+            onDragOverCapture={handleDragOver}
+          >
             {Array.from({ length: 28 }).map((_, dayIdx) => {
               const dayNumber = dayIdx + 1; // 1-28
               const dayStatus = getDayStatus(dayNumber);
@@ -415,6 +434,7 @@ export default function BedCalendar({
               return (
                 <div
                   key={dayNumber}
+                  data-day={dayNumber}
                   className={`bed-calendar-day ${dragOverDay === dayNumber ? "drag-over" : ""} ${dayStatus ? `planted planted-${dayStatus.type}` : ""} ${isHarvest ? "harvest-day" : ""} ${startingPlanting ? "planting-start-day" : ""}`}
                   data-harvest-replant={mixedHarvestInfo ? "true" : undefined}
                   style={
@@ -445,10 +465,9 @@ export default function BedCalendar({
                       ? `${mixedHarvestInfo.oldPlant.name} → ${mixedHarvestInfo.newPlant.name}`
                       : tooltipText
                   }
-                  onDrop={(e) => handleDrop(dayNumber, e)}
-                  onDragOver={handleDragOver}
                   onDragEnter={(e) => handleDragEnter(dayNumber, e)}
                   onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(dayNumber, e)}
                   onClick={() => onDaySelect?.(dayNumber)}
                   onContextMenu={(e) => handleRightClick(dayNumber, e)}
                   draggable={Boolean(startingPlanting && !carryoverInfo)}
