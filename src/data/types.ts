@@ -1,5 +1,14 @@
 export type SeasonId = "spring" | "summer" | "fall" | "winter";
 
+export type FertilizerType = "none" | "speed_gro" | "deluxe_speed_gro" | "hyper_speed_gro";
+
+export interface Fertilizer {
+  id: FertilizerType;
+  label: string;
+  bonus: number;
+  color: string;
+}
+
 export interface Season {
   id: SeasonId;
   label: string;
@@ -27,6 +36,8 @@ export interface Bed {
   y: number;
   width: number;
   height: number;
+  sprinklers: number;
+  fertilizer: FertilizerType;
   plantings: Planting[];
 }
 

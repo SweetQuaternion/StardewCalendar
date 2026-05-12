@@ -14,6 +14,7 @@ export function PlantCard({ plant, onDragStart, onDragEnd }: PlantCardProps) {
   const handleDragStart = (event: DragEvent<HTMLDivElement>) => {
     onDragStart?.(plant.id);
     event.dataTransfer.setData("plantId", plant.id);
+    event.dataTransfer.setData("text/plain", `plant:${plant.id}`);
     event.dataTransfer.effectAllowed = "copy";
   };
 

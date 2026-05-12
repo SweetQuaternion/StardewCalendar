@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 
 import { PlantList } from "./components/PlantList.tsx";
 import { SeasonSelector } from "./components/SeasonSelector.tsx";
@@ -9,9 +10,14 @@ import BedInfoPanel from "./components/BedInfoPanel.tsx";
 import SeasonSummary from "./components/SeasonSummary.tsx";
 import useLocalStorage from "./hooks/useLocalStorage.ts";
 import { PLANTS } from "./data/plants.ts";
-import { prevSeason } from "./utils/calculations.ts";
+import { prevSeason, calcGrowDays, isCarryover } from "./utils/calculations.ts";
+import {
+  buildSfpExportPayload,
+  convertSfpToSeasonBeds,
+  parseSfpImportPayload,
+} from "./utils/sfpImportExport.ts";
 import DayNavigator from "./components/DayNavigator";
-import type { SeasonId, Bed } from "./data/types.ts";
+import type { SeasonId, Bed, FertilizerType } from "./data/types.ts";
 
 type DialogMode = "create" | "rename" | "delete" | "action" | "collision";
 
@@ -25,6 +31,8 @@ export default function App() {
   const [currentDay, setCurrentDay] = useLocalStorage<number>("sdv-current-day", 1);
   const [draggedPlantId, setDraggedPlantId] = useState<string | null>(null);
   const [hoveredBedId, setHoveredBedId] = useState<string | null>(null);
+  const [agriculturist, setAgriculturist] = useLocalStorage<boolean>("sdv-agriculturist", false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const seasonOrder: SeasonId[] = ["spring", "summer", "fall", "winter"];
 
   // Beete pro Saison in localStorage
@@ -70,6 +78,8 @@ export default function App() {
     if (!bed.plantings && bed.planting !== undefined) {
       return {
         ...bed,
+        sprinklers: typeof bed.sprinklers === "number" ? bed.sprinklers : 0,
+        fertilizer: bed.fertilizer ?? "none",
         plantings: bed.planting ? [bed.planting] : [],
       };
     }
@@ -77,10 +87,16 @@ export default function App() {
     if (!bed.plantings) {
       return {
         ...bed,
+        sprinklers: typeof bed.sprinklers === "number" ? bed.sprinklers : 0,
+        fertilizer: bed.fertilizer ?? "none",
         plantings: [],
       };
     }
-    return bed;
+    return {
+      ...bed,
+      sprinklers: typeof bed.sprinklers === "number" ? bed.sprinklers : 0,
+      fertilizer: bed.fertilizer ?? "none",
+    };
   };
 
   const stripPlantings = (bed: Bed): Bed => ({
@@ -113,6 +129,44 @@ export default function App() {
     setBedsSummer(updater(bedsSummer.map(normalizeBed)));
     setBedsFall(updater(bedsFall.map(normalizeBed)));
     setBedsWinter(updater(bedsWinter.map(normalizeBed)));
+  };
+
+  const incrementSprinklersForBed = (bedId: string) => {
+    setBedLayoutsForAllSeasons((beds) =>
+      beds.map((bed) =>
+        bed.id === bedId
+          ? {
+              ...bed,
+              sprinklers: (bed.sprinklers ?? 0) + 1,
+            }
+          : bed,
+      ),
+    );
+  };
+
+  const changeSprinklersForBed = (bedId: string, delta: number) => {
+    setBedLayoutsForAllSeasons((beds) =>
+      beds.map((bed) =>
+        bed.id === bedId
+          ? {
+              ...bed,
+              sprinklers: Math.max(0, (bed.sprinklers ?? 0) + delta),
+            }
+          : bed,
+      ),
+    );
+  };
+
+  const setFertilizerForBed = (bedId: string, fertilizer: FertilizerType) => {
+    const updated = currentBeds.map((bed) =>
+      bed.id === bedId
+        ? {
+            ...bed,
+            fertilizer,
+          }
+        : bed,
+    );
+    setCurrentSeasonBeds(updated);
   };
 
   const getBedLayoutsForSeason = (season: SeasonId): Bed[] => {
@@ -186,6 +240,8 @@ export default function App() {
         y: pendingBedData.y,
         width: pendingBedData.width,
         height: pendingBedData.height,
+        sprinklers: 0,
+        fertilizer: "none",
         plantings: [],
       };
       setBedLayoutsForAllSeasons((beds) => [...beds, newBed]);
@@ -265,6 +321,82 @@ export default function App() {
   };
 
   /**
+   * Plant drop onto a bed: insert at earliest possible start day
+   */
+  const handlePlantDropToBed = (bedId: string, plantId: string) => {
+    const bed = currentBeds.find((b) => b.id === bedId);
+    if (!bed) return;
+
+    // Check carryover from prev season
+    const prevBed = prevSeasonBeds.find((b) => b.id === bedId);
+    if (prevBed && prevBed.plantings.length > 0) {
+      const last = prevBed.plantings[prevBed.plantings.length - 1];
+      const plantPrev = PLANTS.find((p) => p.id === last.plantId);
+      if (plantPrev && isCarryover(plantPrev, selectedSeason)) {
+        window.alert(
+          "🚫 Dieses Beet ist durch eine mehrjährige Pflanzung belegt und kann nicht bepflanzt werden.",
+        );
+        return;
+      }
+    }
+
+    const plant = PLANTS.find((p) => p.id === plantId);
+    if (!plant) return;
+
+    // helper: check whether the new plant (with its growDays) can be placed at `day`
+    const canPlaceAt = (dayNumber: number): boolean => {
+      const newGrow = calcGrowDays(plant, bed.fertilizer, agriculturist);
+      const endDay = Math.min(28, dayNumber + newGrow - 1);
+
+      for (let t = dayNumber; t <= endDay; t++) {
+        for (const planting of bed.plantings) {
+          const pl = PLANTS.find((p) => p.id === planting.plantId);
+          if (!pl) continue;
+          const epStart = planting.startDay;
+          const epGrow = calcGrowDays(pl, bed.fertilizer, agriculturist);
+          const epFirstHarvest = epStart + epGrow;
+
+          // growth phase of existing planting
+          if (t >= epStart && t < epStart + epGrow) return false;
+
+          // existing planting has regrow -> any harvest/regrow day is occupied
+          if (pl.regrowDays) {
+            if (t >= epFirstHarvest && (t - epFirstHarvest) % pl.regrowDays === 0) return false;
+          } else {
+            // single harvest day: occupied unless we're starting exactly on that harvest day
+            if (t === epFirstHarvest && t !== dayNumber) return false;
+          }
+        }
+      }
+      return true;
+    };
+
+    // getNextSeason helper inline
+    const SEASON_ORDER: SeasonId[] = ["spring", "summer", "fall", "winter"];
+    const getNextSeason = (s: SeasonId) =>
+      SEASON_ORDER[(SEASON_ORDER.indexOf(s) + 1) % SEASON_ORDER.length];
+    const next = getNextSeason(selectedSeason);
+
+    // Find earliest day 1..28 where planting fits without overlapping existing plantings
+    for (let day = 1; day <= 28; day++) {
+      const growsIntoNextSeason =
+        plant.seasons.includes(selectedSeason) && plant.seasons.includes(next);
+      const growDays = calcGrowDays(plant, bed.fertilizer, agriculturist);
+      if (day + growDays - 1 > 28 && !growsIntoNextSeason) continue;
+
+      if (!canPlaceAt(day)) continue;
+
+      // found suitable day
+      handlePlantingSet(bedId, plantId, day);
+      setSelectedBedId(bedId);
+      setSelectedCalendarDay(day);
+      return;
+    }
+
+    window.alert("⚠️ Kein freier Pflanztag in dieser Saison gefunden.");
+  };
+
+  /**
    * Eine Pflanzung aus Beet entfernen
    */
   const handlePlantingRemove = (bedId: string, plantingId: string) => {
@@ -280,11 +412,107 @@ export default function App() {
     setCurrentSeasonBeds(updated);
   };
 
+  /**
+   * Starttag einer bestehenden Pflanzung verschieben
+   */
+  const handlePlantingMove = (bedId: string, plantingId: string, startDay: number) => {
+    const updated = currentBeds.map((bed) => {
+      if (bed.id === bedId) {
+        return {
+          ...bed,
+          plantings: bed.plantings.map((planting) =>
+            planting.id === plantingId ? { ...planting, startDay } : planting,
+          ),
+        };
+      }
+      return bed;
+    });
+    setCurrentSeasonBeds(updated);
+  };
+
+  const handleExport = () => {
+    const payload = buildSfpExportPayload(
+      {
+        spring: bedsSpring.map(normalizeBed),
+        summer: bedsSummer.map(normalizeBed),
+        fall: bedsFall.map(normalizeBed),
+        winter: bedsWinter.map(normalizeBed),
+      },
+      selectedSeason,
+      currentDay,
+    );
+
+    const fileContent = JSON.stringify(payload, null, 2);
+    const blob = new Blob([fileContent], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "farm-plan.sfp";
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => {
+    importInputRef.current?.click();
+  };
+
+  const handleImportFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.target;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    try {
+      const rawText = await file.text();
+      const json = JSON.parse(rawText) as unknown;
+      const parsed = parseSfpImportPayload(json);
+
+      if (!parsed.ok) {
+        window.alert(`Import fehlgeschlagen: ${parsed.error}`);
+        return;
+      }
+
+      const confirmOverwrite = window.confirm(
+        "Beim Import werden alle vorhandenen Farmdaten überschrieben. Möchtest du fortfahren?",
+      );
+      if (!confirmOverwrite) return;
+
+      const seasonBeds = convertSfpToSeasonBeds(parsed.value);
+      localStorage.setItem("sdv-beds-spring", JSON.stringify(seasonBeds.spring));
+      localStorage.setItem("sdv-beds-summer", JSON.stringify(seasonBeds.summer));
+      localStorage.setItem("sdv-beds-fall", JSON.stringify(seasonBeds.fall));
+      localStorage.setItem("sdv-beds-winter", JSON.stringify(seasonBeds.winter));
+      localStorage.setItem("sdv-selected-season", JSON.stringify(parsed.value.data.currentSeason));
+      localStorage.setItem("sdv-current-day", JSON.stringify(parsed.value.data.currentDay));
+
+      window.location.reload();
+    } catch {
+      window.alert("Import fehlgeschlagen: Die Datei ist kein gültiges JSON.");
+    } finally {
+      input.value = "";
+    }
+  };
+
   return (
     <div className="app-root">
       <header className="app-header">
         <div className="app-title">🌾 Stardew Farm Planner</div>
-        <div className="header-actions placeholder">Export · Import (später)</div>
+        <div className="header-actions">
+          <button className="header-action-button" type="button" onClick={handleExport}>
+            💾 Export
+          </button>
+          <button className="header-action-button" type="button" onClick={handleImportClick}>
+            📂 Import
+          </button>
+          <input
+            ref={importInputRef}
+            className="header-import-input"
+            type="file"
+            accept=".sfp,application/json"
+            onChange={handleImportFileChange}
+          />
+        </div>
       </header>
 
       <div className="app-body">
@@ -306,9 +534,11 @@ export default function App() {
                 plants={PLANTS}
                 onPlantingSet={handlePlantingSet}
                 onPlantingRemove={handlePlantingRemove}
+                onPlantingMove={handlePlantingMove}
                 onDaySelect={setSelectedCalendarDay}
                 draggedPlantId={draggedPlantId}
                 bedsFromPrevSeason={prevSeasonBeds}
+                agriculturist={agriculturist}
               />
             </div>
             <BedInfoPanel
@@ -316,6 +546,7 @@ export default function App() {
               plants={PLANTS}
               selectedDay={selectedCalendarDay}
               currentDay={currentDay}
+              agriculturist={agriculturist}
             />
             <aside className="season-overview-panel placeholder">
               <DayNavigator
@@ -325,6 +556,7 @@ export default function App() {
                 beds={currentBeds}
                 plants={PLANTS}
                 bedsFromPrevSeason={prevSeasonBeds}
+                agriculturist={agriculturist}
                 onTaskHover={(id) => setHoveredBedId(id)}
                 onTaskClick={(id) => setSelectedBedId(id)}
               />
@@ -337,11 +569,17 @@ export default function App() {
               onBedSelect={setSelectedBedId}
               onBedRename={handleBedRename}
               onBedDelete={handleBedDelete}
+              onSprinklerDrop={incrementSprinklersForBed}
+              onSprinklerChange={changeSprinklersForBed}
+              onFertilizerDrop={setFertilizerForBed}
+              onPlantDropToBed={handlePlantDropToBed}
               selectedBedId={selectedBedId}
               hoveredBedId={hoveredBedId}
               currentSeason={selectedSeason}
               bedsFromPrevSeason={prevSeasonBeds}
               plants={PLANTS}
+              agriculturist={agriculturist}
+              onAgriculturistChange={setAgriculturist}
             />
           </section>
         </main>
@@ -352,6 +590,7 @@ export default function App() {
             bedsFromPrevSeason={prevSeasonBeds}
             selectedSeason={selectedSeason}
             plants={PLANTS}
+            agriculturist={agriculturist}
           />
         </aside>
       </div>

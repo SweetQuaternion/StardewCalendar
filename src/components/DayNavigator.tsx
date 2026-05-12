@@ -1,15 +1,16 @@
 import "./DayNavigator.css";
-import type { Bed, Plant } from "../data/types";
+import type { Bed, Plant, SeasonId } from "../data/types";
 import { getDayTasks } from "../utils/calculations";
 import type { DayTask } from "../utils/calculations";
 
 interface DayNavigatorProps {
   currentDay: number;
-  selectedSeason: string;
+  selectedSeason: SeasonId;
   onDayChange: (day: number) => void;
   beds: Bed[];
   plants: Plant[];
   bedsFromPrevSeason: Bed[];
+  agriculturist?: boolean;
   onTaskHover?: (bedId: string | null) => void;
   onTaskClick?: (bedId: string) => void;
 }
@@ -21,11 +22,19 @@ export default function DayNavigator({
   beds,
   plants,
   bedsFromPrevSeason,
+  agriculturist = false,
   onTaskHover,
   onTaskClick,
 }: DayNavigatorProps) {
-  const tasks = getDayTasks(currentDay, beds, plants, selectedSeason as any, bedsFromPrevSeason);
-  const SEASON_LABELS: Record<string, string> = {
+  const tasks = getDayTasks(
+    currentDay,
+    beds,
+    plants,
+    selectedSeason,
+    bedsFromPrevSeason,
+    agriculturist,
+  );
+  const SEASON_LABELS: Record<SeasonId, string> = {
     spring: "Frühling",
     summer: "Sommer",
     fall: "Herbst",

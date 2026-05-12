@@ -47,6 +47,46 @@ body {
   gap: 0.6em;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.header-action-button {
+  border: 0.0625em solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--color-bg);
+  font: inherit;
+  font-size: 0.95em;
+  border-radius: 0.45em;
+  padding: 0.35em 0.7em;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.header-action-button:hover {
+  background: rgba(255, 255, 255, 0.24);
+  transform: translateY(-0.04em);
+  box-shadow: 0 0.1em 0.2em rgba(0, 0, 0, 0.08);
+}
+
+.header-action-button:active {
+  transform: translateY(0);
+}
+
+.header-action-button:focus-visible {
+  outline: 0.12em solid rgba(255, 255, 255, 0.85);
+  outline-offset: 0.08em;
+}
+
+.header-import-input {
+  display: none;
+}
+
 .app-body {
   display: flex;
   flex: 1;

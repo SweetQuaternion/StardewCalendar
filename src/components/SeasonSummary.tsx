@@ -1,5 +1,12 @@
 import type { Bed, Plant, Planting, SeasonId } from "../data/types";
-import { calcRevenue, isCarryover, prevSeason } from "../utils/calculations";
+import {
+  calcGrowDays,
+  calcRevenue,
+  getBedEffectiveArea,
+  isCarryover,
+  prevSeason,
+} from "../utils/calculations";
+import { FERTILIZERS } from "../data/fertilizers";
 import "./SeasonSummary.css";
 
 interface SeasonSummaryProps {
@@ -7,6 +14,7 @@ interface SeasonSummaryProps {
   bedsFromPrevSeason: Bed[];
   selectedSeason: SeasonId;
   plants: Plant[];
+  agriculturist?: boolean;
 }
 
 type ShoppingRow = {
@@ -31,9 +39,14 @@ const SEASON_LABELS: Record<SeasonId, string> = {
   winter: "Winter",
 };
 
-function calcCarryoverHarvestRevenue(planting: Planting, plant: Plant): number {
+function calcCarryoverHarvestRevenue(
+  planting: Planting,
+  plant: Plant,
+  fertilizer: Bed["fertilizer"],
+  agriculturist: boolean,
+): number {
   const harvestDays: number[] = [];
-  let harvestDay = planting.startDay + plant.growDays;
+  let harvestDay = planting.startDay + calcGrowDays(plant, fertilizer, agriculturist);
 
   while (harvestDay <= 56) {
     if (harvestDay > 28) {
@@ -55,6 +68,7 @@ export default function SeasonSummary({
   bedsFromPrevSeason,
   selectedSeason,
   plants,
+  agriculturist = false,
 }: SeasonSummaryProps) {
   const plantMap = new Map(plants.map((plant) => [plant.id, plant]));
 
@@ -94,7 +108,7 @@ export default function SeasonSummary({
   });
 
   const shoppingRows = currentPlantings.reduce<ShoppingRow[]>((rows, entry) => {
-    const quantity = entry.bed.width * entry.bed.height;
+    const quantity = getBedEffectiveArea(entry.bed);
     const totalSeedCost = quantity * entry.plant.seedPrice;
     const existingRow = rows.find((row) => row.plant.id === entry.plant.id);
 
@@ -112,6 +126,19 @@ export default function SeasonSummary({
     return rows;
   }, []);
 
+  // Fertilizer counts (per tile) - sum effective area of beds using each fertilizer
+  const fertilizerMap = new Map<string, number>();
+  for (const bed of beds) {
+    if (!bed.fertilizer || bed.fertilizer === "none") continue;
+    const qty = getBedEffectiveArea(bed);
+    fertilizerMap.set(bed.fertilizer, (fertilizerMap.get(bed.fertilizer) ?? 0) + qty);
+  }
+  const fertilizerRows = Array.from(fertilizerMap.entries()).map(([id, count]) => ({
+    id,
+    count,
+    label: FERTILIZERS.find((f) => f.id === id)?.label ?? id,
+  }));
+
   const yieldRows = [
     ...beds
       .map<YieldRow | null>((bed) => {
@@ -126,7 +153,10 @@ export default function SeasonSummary({
           bedName: bed.name,
           plantNames: Array.from(new Set(bedPlantings.map((entry) => entry.plant.name))),
           revenue: bedPlantings.reduce(
-            (sum, entry) => sum + calcRevenue(entry.planting, entry.plant) * bed.width * bed.height,
+            (sum, entry) =>
+              sum +
+              calcRevenue(entry.planting, entry.plant, bed.fertilizer, agriculturist) *
+                getBedEffectiveArea(bed),
             0,
           ),
           isCarryover: false,
@@ -138,9 +168,12 @@ export default function SeasonSummary({
       bedName: entry.bed.name,
       plantNames: [entry.plant.name],
       revenue:
-        calcCarryoverHarvestRevenue(entry.planting, entry.plant) *
-        entry.bed.width *
-        entry.bed.height,
+        calcCarryoverHarvestRevenue(
+          entry.planting,
+          entry.plant,
+          entry.bed.fertilizer,
+          agriculturist,
+        ) * getBedEffectiveArea(entry.bed),
       isCarryover: true,
       carryoverSeasonLabel: SEASON_LABELS[entry.previousSeasonId],
     })),
@@ -184,12 +217,31 @@ export default function SeasonSummary({
                     />
                     <div className="season-summary-row-main">
                       <div className="season-summary-row-title">{row.plant.name}</div>
-                      <div className="season-summary-row-meta">{row.plant.seedPrice} G/Samen</div>
-                      <div className="season-summary-row-meta">Gesamt: {row.totalSeedCost} G</div>
                     </div>
                     <div className="season-summary-row-total">{row.seedCount} Samen</div>
                   </article>
                 ))}
+
+                {fertilizerRows.length > 0 &&
+                  fertilizerRows.map((f) => (
+                    <article key={f.id} className="season-summary-row">
+                      <img
+                        className="season-summary-image"
+                        src={
+                          f.id === "speed_gro"
+                            ? "/fertilizer/Speed-Gro.png"
+                            : f.id === "deluxe_speed_gro"
+                              ? "/fertilizer/Deluxe_Speed-Gro.png"
+                              : "/fertilizer/Hyper_Speed-Gro.png"
+                        }
+                        alt={f.label}
+                      />
+                      <div className="season-summary-row-main">
+                        <div className="season-summary-row-title">{f.label}</div>
+                      </div>
+                      <div className="season-summary-row-total">{f.count}</div>
+                    </article>
+                  ))}
               </div>
             )}
 

@@ -1,5 +1,5 @@
 import type { Bed, Plant, Planting, SeasonId } from "../data/types";
-import { isCarryover, prevSeason, getHarvestDays } from "../utils/calculations";
+import { calcGrowDays, getHarvestDays, isCarryover, prevSeason } from "../utils/calculations";
 import { SEASONS } from "../data/seasons";
 import { useState, useEffect } from "react";
 import "./BedCalendar.css";
@@ -10,12 +10,20 @@ interface Props {
   plants: Plant[];
   onPlantingSet: (bedId: string, plantId: string, startDay: number) => void;
   onPlantingRemove: (bedId: string, plantingId: string) => void;
+  onPlantingMove: (bedId: string, plantingId: string, startDay: number) => void;
   onDaySelect?: (dayNumber: number) => void;
   draggedPlantId?: string | null;
   bedsFromPrevSeason: Bed[];
+  agriculturist: boolean;
 }
 
 const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+const SEASON_ORDER: SeasonId[] = ["spring", "summer", "fall", "winter"];
+
+function getNextSeason(season: SeasonId): SeasonId {
+  const index = SEASON_ORDER.indexOf(season);
+  return SEASON_ORDER[(index + 1) % SEASON_ORDER.length];
+}
 
 export default function BedCalendar({
   bed,
@@ -24,8 +32,10 @@ export default function BedCalendar({
   bedsFromPrevSeason,
   onPlantingSet,
   onPlantingRemove,
+  onPlantingMove,
   onDaySelect,
   draggedPlantId,
+  agriculturist,
 }: Props) {
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
   const [showReplaceDialog, setShowReplaceDialog] = useState(false);
@@ -52,6 +62,7 @@ export default function BedCalendar({
   const getCarryoverPlant = (): {
     plant: Plant;
     planting: Planting;
+    fertilizer: Bed["fertilizer"];
     prevSeasonLabel: string;
   } | null => {
     if (!bed) return null;
@@ -69,7 +80,7 @@ export default function BedCalendar({
 
     // Prüfe ob die Pflanze in beiden Jahreszeiten wächst
     if (isCarryover(plant, selectedSeason)) {
-      return { plant, planting: lastPlanting, prevSeasonLabel };
+      return { plant, planting: lastPlanting, fertilizer: prevBed.fertilizer, prevSeasonLabel };
     }
 
     return null;
@@ -94,7 +105,7 @@ export default function BedCalendar({
       if (planting.id === newPlanting.id) return false;
       const plant = plants.find((entry) => entry.id === planting.plantId);
       if (!plant || plant.regrowDays !== null) return false;
-      return getHarvestDays(planting, plant).includes(dayNumber);
+      return getHarvestDays(planting, plant, bed.fertilizer, agriculturist).includes(dayNumber);
     });
 
     if (!oldPlanting) return null;
@@ -121,6 +132,11 @@ export default function BedCalendar({
     return { oldPlant: dayStatus.plant, newPlant: draggedPlant };
   };
 
+  const getPlantingStartingOnDay = (dayNumber: number): Planting | null => {
+    if (!bed) return null;
+    return [...bed.plantings].reverse().find((planting) => planting.startDay === dayNumber) ?? null;
+  };
+
   /**
    * Handle Drop auf Kalender-Tag
    */
@@ -129,21 +145,69 @@ export default function BedCalendar({
     e.stopPropagation();
     setDragOverDay(null);
 
+    const draggedPlantingIdDirect = e.dataTransfer.getData("plantingId");
+    const draggedTextPlain = e.dataTransfer.getData("text/plain");
+    const draggedPlantingIdFromText = draggedTextPlain.startsWith("planting:")
+      ? draggedTextPlain.slice("planting:".length)
+      : "";
+    const draggedPlantingId = draggedPlantingIdDirect || draggedPlantingIdFromText;
+    if (draggedPlantingId && bed) {
+      const draggedPlanting = bed.plantings.find((planting) => planting.id === draggedPlantingId);
+      if (!draggedPlanting) return;
+      if (draggedPlanting.startDay === dayNumber) return;
+
+      const draggedPlant = plants.find((plant) => plant.id === draggedPlanting.plantId);
+      if (!draggedPlant) return;
+
+      const nextSeason = getNextSeason(selectedSeason);
+      const growsIntoNextSeason =
+        draggedPlant.seasons.includes(selectedSeason) && draggedPlant.seasons.includes(nextSeason);
+      const growDays = calcGrowDays(draggedPlant, bed.fertilizer, agriculturist);
+
+      if (dayNumber + growDays - 1 > 28 && !growsIntoNextSeason) {
+        alert(
+          `⚠️ Zu spät für diese Saison! ${draggedPlant.name} braucht ${growDays} Tage zum Wachsen.`,
+        );
+        return;
+      }
+
+      if (carryoverInfo) {
+        alert(
+          "🚫 Dieses Beet ist durch eine mehrjährige Pflanzung belegt und kann nicht umpflanzt werden.",
+        );
+        return;
+      }
+
+      const dayStatus = getDayStatus(dayNumber);
+      const canPlantOnHarvestDay =
+        dayStatus?.type === "harvest" && dayStatus.plant.regrowDays === null;
+
+      if (dayStatus && dayStatus.planting.id !== draggedPlanting.id && !canPlantOnHarvestDay) {
+        alert("🚫 Dieser Tag ist bereits belegt.");
+        return;
+      }
+
+      onPlantingMove(bed.id, draggedPlanting.id, dayNumber);
+      return;
+    }
+
     const plantId = e.dataTransfer.getData("plantId");
     if (!plantId || !bed) return;
 
     const plant = plants.find((p) => p.id === plantId);
     if (!plant) return;
+    const nextSeason = getNextSeason(selectedSeason);
 
     const dayStatus = getDayStatus(dayNumber);
     const canPlantOnHarvestDay =
       dayStatus?.type === "harvest" && dayStatus.plant.regrowDays === null;
 
     // Prüfe ob Pflanztag + Wachstum noch in die Saison passt
-    if (dayNumber + plant.growDays - 1 > 28) {
-      alert(
-        `⚠️ Zu spät für diese Saison! ${plant.name} braucht ${plant.growDays} Tage zum Wachsen.`,
-      );
+    const growsIntoNextSeason =
+      plant.seasons.includes(selectedSeason) && plant.seasons.includes(nextSeason);
+    const growDays = calcGrowDays(plant, bed.fertilizer, agriculturist);
+    if (dayNumber + growDays - 1 > 28 && !growsIntoNextSeason) {
+      alert(`⚠️ Zu spät für diese Saison! ${plant.name} braucht ${growDays} Tage zum Wachsen.`);
       return;
     }
 
@@ -168,7 +232,9 @@ export default function BedCalendar({
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
+    const isPlantingDrag =
+      e.dataTransfer.types.includes("plantingId") || e.dataTransfer.types.includes("text/plain");
+    e.dataTransfer.dropEffect = isPlantingDrag ? "move" : "copy";
   };
 
   const handleDragEnter = (dayNumber: number, e: React.DragEvent<HTMLDivElement>) => {
@@ -180,6 +246,16 @@ export default function BedCalendar({
     if (e.currentTarget === e.target) {
       setDragOverDay(null);
     }
+  };
+
+  const handlePlantingDragStart = (plantingId: string, e: React.DragEvent<HTMLDivElement>) => {
+    e.dataTransfer.setData("plantingId", plantingId);
+    e.dataTransfer.setData("text/plain", `planting:${plantingId}`);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handlePlantingDragEnd = () => {
+    setDragOverDay(null);
   };
 
   const handleRightClick = (dayNumber: number, e: React.MouseEvent<HTMLDivElement>) => {
@@ -204,9 +280,9 @@ export default function BedCalendar({
   const getCarryoverDayStatus = (dayNumber: number): DayStatus | null => {
     if (!carryoverInfo) return null;
 
-    const { plant, planting } = carryoverInfo;
+    const { plant, planting, fertilizer } = carryoverInfo;
     const dayAbsolute = dayNumber + 28; // aktueller Saison-Tag als absoluter Tag über 2 Saisons
-    const firstHarvestAbsolute = planting.startDay + plant.growDays;
+    const firstHarvestAbsolute = planting.startDay + calcGrowDays(plant, fertilizer, agriculturist);
 
     // Noch Wachstum aus Vorsaison
     if (dayAbsolute >= planting.startDay && dayAbsolute < firstHarvestAbsolute) {
@@ -236,9 +312,9 @@ export default function BedCalendar({
   const getCarryoverHarvestDaysCurrentSeason = (): number[] => {
     if (!carryoverInfo) return [];
 
-    const { plant, planting } = carryoverInfo;
+    const { plant, planting, fertilizer } = carryoverInfo;
     const days: number[] = [];
-    const firstHarvestAbsolute = planting.startDay + plant.growDays;
+    const firstHarvestAbsolute = planting.startDay + calcGrowDays(plant, fertilizer, agriculturist);
 
     if (!plant.regrowDays) {
       if (firstHarvestAbsolute > 28 && firstHarvestAbsolute <= 56) {
@@ -267,9 +343,9 @@ export default function BedCalendar({
       if (!plant) continue;
 
       const startDay = planting.startDay;
-      const growDays = plant.growDays;
+      const growDays = calcGrowDays(plant, bed.fertilizer, agriculturist);
       const regrowDays = plant.regrowDays;
-      const harvestDays = getHarvestDays(planting, plant);
+      const harvestDays = getHarvestDays(planting, plant, bed.fertilizer, agriculturist);
 
       // Prüfe ob dieser Tag in der Wachstumsphase ist
       if (dayNumber >= startDay && dayNumber < startDay + growDays) {
@@ -318,6 +394,7 @@ export default function BedCalendar({
             {Array.from({ length: 28 }).map((_, dayIdx) => {
               const dayNumber = dayIdx + 1; // 1-28
               const dayStatus = getDayStatus(dayNumber);
+              const startingPlanting = getPlantingStartingOnDay(dayNumber);
               const harvestReplantInfo = getHarvestReplantInfo(dayNumber);
               const dragHarvestPreviewInfo =
                 dragOverDay === dayNumber ? getDragHarvestPreviewInfo(dayNumber) : null;
@@ -325,7 +402,7 @@ export default function BedCalendar({
               const harvestDays = bed?.plantings.length
                 ? bed.plantings.flatMap((p) => {
                     const plant = plants.find((pl) => pl.id === p.plantId);
-                    return plant ? getHarvestDays(p, plant) : [];
+                    return plant ? getHarvestDays(p, plant, bed.fertilizer, agriculturist) : [];
                   })
                 : [];
               const carryoverHarvestDays = getCarryoverHarvestDaysCurrentSeason();
@@ -338,7 +415,7 @@ export default function BedCalendar({
               return (
                 <div
                   key={dayNumber}
-                  className={`bed-calendar-day ${dragOverDay === dayNumber ? "drag-over" : ""} ${dayStatus ? `planted planted-${dayStatus.type}` : ""} ${isHarvest ? "harvest-day" : ""}`}
+                  className={`bed-calendar-day ${dragOverDay === dayNumber ? "drag-over" : ""} ${dayStatus ? `planted planted-${dayStatus.type}` : ""} ${isHarvest ? "harvest-day" : ""} ${startingPlanting ? "planting-start-day" : ""}`}
                   data-harvest-replant={mixedHarvestInfo ? "true" : undefined}
                   style={
                     mixedHarvestInfo
@@ -356,10 +433,10 @@ export default function BedCalendar({
                             backgroundColor: dayStatus.plant.color,
                             opacity:
                               dayStatus.type === "harvest"
-                                ? 0.85
+                                ? 0.9 // Erntetag
                                 : dayStatus.type === "regrow"
-                                  ? 0.5
-                                  : 0.7,
+                                  ? 0.6 // Nachwuchs
+                                  : 0.6, // normales Wachstum
                           }
                         : {}
                   }
@@ -374,6 +451,13 @@ export default function BedCalendar({
                   onDragLeave={handleDragLeave}
                   onClick={() => onDaySelect?.(dayNumber)}
                   onContextMenu={(e) => handleRightClick(dayNumber, e)}
+                  draggable={Boolean(startingPlanting && !carryoverInfo)}
+                  onDragStart={
+                    startingPlanting
+                      ? (e) => handlePlantingDragStart(startingPlanting.id, e)
+                      : undefined
+                  }
+                  onDragEnd={startingPlanting ? handlePlantingDragEnd : undefined}
                 >
                   <span className="bed-calendar-day-number">{dayNumber}</span>
                   {dayStatus && !isHarvest && dayStatus.plant.imageFile && (

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import type { Bed, Plant, SeasonId } from "../data/types";
+import type { Bed, FertilizerType, Plant, SeasonId } from "../data/types";
+import { FERTILIZERS } from "../data/fertilizers";
 import { bedsOverlap, isCarryover, prevSeason } from "../utils/calculations";
 import "./FarmMap.css";
 
@@ -10,11 +11,17 @@ interface Props {
   onBedSelect: (bedId: string | null) => void;
   onBedRename: (bedId: string) => void;
   onBedDelete: (bedId: string) => void;
+  onSprinklerDrop: (bedId: string) => void;
+  onSprinklerChange: (bedId: string, delta: number) => void;
+  onFertilizerDrop: (bedId: string, fertilizer: FertilizerType) => void;
+  onPlantDropToBed?: (bedId: string, plantId: string) => void;
   selectedBedId: string | null;
   hoveredBedId?: string | null;
   currentSeason: SeasonId;
   bedsFromPrevSeason: Bed[];
   plants: Plant[];
+  agriculturist: boolean;
+  onAgriculturistChange: (value: boolean) => void;
 }
 
 const CELL_SIZE = 2; // em
@@ -25,11 +32,17 @@ export default function FarmMap({
   onBedSelect,
   onBedRename,
   onBedDelete,
+  onSprinklerDrop,
+  onSprinklerChange,
+  onFertilizerDrop,
   selectedBedId,
   hoveredBedId,
   currentSeason,
   bedsFromPrevSeason,
   plants,
+  agriculturist,
+  onAgriculturistChange,
+  onPlantDropToBed,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -44,12 +57,23 @@ export default function FarmMap({
     height: number;
     collision: boolean;
   } | null>(null);
+  const [previewTooltipPos, setPreviewTooltipPos] = useState<{ x: number; y: number } | null>(null);
 
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
     bedId: string;
   } | null>(null);
+  const [sprinklerDropBedId, setSprinklerDropBedId] = useState<string | null>(null);
+  const [fertilizerDropBedId, setFertilizerDropBedId] = useState<string | null>(null);
+  const [plantDropBedId, setPlantDropBedId] = useState<string | null>(null);
+  const [sprinklerMenu, setSprinklerMenu] = useState<{
+    x: number;
+    y: number;
+    bedId: string;
+    value: number;
+  } | null>(null);
+  const sprinklerMenuRef = useRef<HTMLDivElement | null>(null);
 
   const getCellSizePx = () => {
     const rootFontSize = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
@@ -149,6 +173,7 @@ export default function FarmMap({
     setDragging(true);
     setStartX(x);
     setStartY(y);
+    setPreviewTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
   const handleMouseMove = (e: ReactMouseEvent<HTMLDivElement>) => {
@@ -177,6 +202,7 @@ export default function FarmMap({
       height: validHeight,
       collision,
     });
+    setPreviewTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
   const handleMouseUp = () => {
@@ -188,12 +214,14 @@ export default function FarmMap({
     ) {
       setDragging(false);
       setPreview(null);
+      setPreviewTooltipPos(null);
       return;
     }
 
     onBedCreate(preview.x, preview.y, preview.width, preview.height);
     setDragging(false);
     setPreview(null);
+    setPreviewTooltipPos(null);
   };
 
   const handleRightClick = (e: ReactMouseEvent<HTMLDivElement>, bedId: string) => {
@@ -214,6 +242,113 @@ export default function FarmMap({
     return () => window.removeEventListener("click", handleClickOutside);
   }, [contextMenu]);
 
+  useEffect(() => {
+    if (!sprinklerMenu) return;
+
+    const handleClickOutside = () => setSprinklerMenu(null);
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, [sprinklerMenu]);
+
+  useEffect(() => {
+    if (sprinklerMenuRef.current) {
+      sprinklerMenuRef.current.focus();
+    }
+  }, [sprinklerMenu]);
+
+  const handleSprinklerDragStart = (e: React.DragEvent<HTMLImageElement>) => {
+    e.dataTransfer.setData("application/x-sdv-sprinkler", "sprinkler");
+    e.dataTransfer.effectAllowed = "copy";
+  };
+
+  const handleFertilizerDragStart = (
+    fertilizer: FertilizerType,
+    e: React.DragEvent<HTMLImageElement>,
+  ) => {
+    e.dataTransfer.setData("application/x-sdv-fertilizer", fertilizer);
+    e.dataTransfer.effectAllowed = "copy";
+  };
+
+  const handleBedDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    const types = Array.from(e.dataTransfer.types || []);
+    const isSprinkler = types.includes("application/x-sdv-sprinkler");
+    const isFertilizer = types.includes("application/x-sdv-fertilizer");
+    const isPlant = types.includes("plantId") || types.includes("text/plain");
+
+    if (isSprinkler || isFertilizer || isPlant) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = isPlant ? "copy" : "copy";
+    }
+  };
+
+  const handleBedDragEnter = (bedId: string, e: React.DragEvent<HTMLDivElement>) => {
+    const types = Array.from(e.dataTransfer.types || []);
+    const isSprinkler = types.includes("application/x-sdv-sprinkler");
+    const isFertilizer = types.includes("application/x-sdv-fertilizer");
+    const isPlant = types.includes("plantId") || types.includes("text/plain");
+
+    if (isSprinkler) {
+      e.preventDefault();
+      setSprinklerDropBedId(bedId);
+    } else if (isFertilizer) {
+      e.preventDefault();
+      setFertilizerDropBedId(bedId);
+    } else if (isPlant) {
+      e.preventDefault();
+      setPlantDropBedId(bedId);
+    }
+  };
+
+  const handleBedDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    if (e.currentTarget === e.target) {
+      setSprinklerDropBedId(null);
+      setFertilizerDropBedId(null);
+      setPlantDropBedId(null);
+    }
+  };
+
+  const handleBedDrop = (bedId: string, e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setSprinklerDropBedId(null);
+    setFertilizerDropBedId(null);
+
+    if (e.dataTransfer.types.includes("application/x-sdv-sprinkler")) {
+      onSprinklerDrop(bedId);
+      return;
+    }
+
+    // Plant drop (from PlantList)
+    const plantIdDirect = e.dataTransfer.getData("plantId");
+    const textPlain = e.dataTransfer.getData("text/plain") || "";
+    const plantIdFromText = textPlain.startsWith("plant:") ? textPlain.slice("plant:".length) : "";
+    const plantId = plantIdDirect || plantIdFromText;
+    if (plantId) {
+      // select the bed so the calendar shows the updated plantings
+      onBedSelect(bedId);
+      onPlantDropToBed?.(bedId, plantId);
+      return;
+    }
+
+    if (e.dataTransfer.types.includes("application/x-sdv-fertilizer")) {
+      const fertilizer = e.dataTransfer.getData("application/x-sdv-fertilizer") as FertilizerType;
+      if (fertilizer) {
+        onFertilizerDrop(bedId, fertilizer);
+      }
+    }
+  };
+
+  const openSprinklerMenu = (bedId: string, value: number, e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu(null);
+    setSprinklerMenu({
+      bedId,
+      value,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  };
+
   return (
     <div className="farm-map-container" ref={containerRef}>
       <div
@@ -226,15 +361,28 @@ export default function FarmMap({
       >
         {/* Preview-Rechteck beim Drag */}
         {preview && (
-          <div
-            className={`farm-bed-preview ${preview.collision ? "collision" : ""}`}
-            style={{
-              left: `${gridToPixel(preview.x)}px`,
-              top: `${gridToPixel(preview.y)}px`,
-              width: `${gridToPixel(preview.width)}px`,
-              height: `${gridToPixel(preview.height)}px`,
-            }}
-          />
+          <>
+            <div
+              className={`farm-bed-preview ${preview.collision ? "collision" : ""}`}
+              style={{
+                left: `${gridToPixel(preview.x)}px`,
+                top: `${gridToPixel(preview.y)}px`,
+                width: `${gridToPixel(preview.width)}px`,
+                height: `${gridToPixel(preview.height)}px`,
+              }}
+            />
+            {previewTooltipPos && (
+              <div
+                className="farm-bed-size-tooltip"
+                style={{
+                  left: `${previewTooltipPos.x + 12}px`,
+                  top: `${previewTooltipPos.y + 12}px`,
+                }}
+              >
+                {preview.width} × {preview.height}
+              </div>
+            )}
+          </>
         )}
 
         {/* Beete */}
@@ -259,7 +407,7 @@ export default function FarmMap({
           return (
             <div
               key={bed.id}
-              className={`farm-bed ${selectedBedId === bed.id ? "selected" : ""} ${carryoverInfo ? "carryover" : ""} ${hoveredBedId === bed.id ? "hovered" : ""}`}
+              className={`farm-bed ${selectedBedId === bed.id ? "selected" : ""} ${carryoverInfo ? "carryover" : ""} ${hoveredBedId === bed.id ? "hovered" : ""} ${sprinklerDropBedId === bed.id ? "sprinkler-drop-target" : ""} ${fertilizerDropBedId === bed.id ? "fertilizer-drop-target" : ""} ${plantDropBedId === bed.id ? "plant-drop-target" : ""}`}
               style={{
                 left: `${gridToPixel(bed.x)}px`,
                 top: `${gridToPixel(bed.y)}px`,
@@ -267,6 +415,10 @@ export default function FarmMap({
                 height: `${gridToPixel(bed.height)}px`,
               }}
               onClick={() => onBedSelect(bed.id)}
+              onDragOver={handleBedDragOver}
+              onDragEnter={(e) => handleBedDragEnter(bed.id, e)}
+              onDragLeave={handleBedDragLeave}
+              onDrop={(e) => handleBedDrop(bed.id, e)}
               onContextMenu={(e) => {
                 if (!carryoverInfo) {
                   handleRightClick(e, bed.id);
@@ -275,6 +427,46 @@ export default function FarmMap({
               title={tooltipText}
             >
               <span className="farm-bed-name">{bed.name}</span>
+              {bed.sprinklers > 0 && (
+                <div
+                  className="farm-bed-sprinkler-count"
+                  title={`${bed.sprinklers} Sprinkler`}
+                  onClick={(e) => openSprinklerMenu(bed.id, bed.sprinklers, e)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <span className="farm-bed-sprinkler-number">{bed.sprinklers}</span>
+                  <img
+                    className="farm-bed-sprinkler-icon"
+                    src="/Quality_Sprinkler.png"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                </div>
+              )}
+              {bed.fertilizer !== "none" && (
+                <div
+                  className="farm-bed-fertilizer-badge"
+                  title={`${FERTILIZERS.find((entry) => entry.id === bed.fertilizer)?.label ?? "Dünger"} · Klick zum Entfernen`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFertilizerDrop(bed.id, "none");
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <img
+                    className="farm-bed-fertilizer-icon"
+                    src={
+                      bed.fertilizer === "speed_gro"
+                        ? "/fertilizer/Speed-Gro.png"
+                        : bed.fertilizer === "deluxe_speed_gro"
+                          ? "/fertilizer/Deluxe_Speed-Gro.png"
+                          : "/fertilizer/Hyper_Speed-Gro.png"
+                    }
+                    alt=""
+                    aria-hidden="true"
+                  />
+                </div>
+              )}
               {displayPlants.length > 0 && (
                 <div className="farm-bed-plant-icons" aria-hidden="true">
                   {displayPlants.map((plant) => (
@@ -295,6 +487,44 @@ export default function FarmMap({
         {beds.length === 0 && !dragging && (
           <div className="farm-empty-state">Klicke und ziehe, um dein erstes Beet anzulegen 🌱</div>
         )}
+
+        <div className="farm-tool-palette" onMouseDown={(e) => e.stopPropagation()}>
+          <label className="farm-agriculturist-toggle">
+            <input
+              type="checkbox"
+              checked={agriculturist}
+              onChange={(e) => onAgriculturistChange(e.target.checked)}
+            />
+            <span>🌾 Landwirt</span>
+          </label>
+          <div className="farm-tool-row">
+            <img
+              className="farm-tool-source farm-tool-sprinkler-source"
+              src="/Quality_Sprinkler.png"
+              alt="Quality Sprinkler"
+              title="Sprinkler ziehen und auf ein Beet fallen lassen"
+              draggable={true}
+              onDragStart={handleSprinklerDragStart}
+            />
+            {FERTILIZERS.filter((entry) => entry.id !== "none").map((entry) => (
+              <img
+                key={entry.id}
+                className="farm-tool-source farm-tool-fertilizer-source"
+                src={
+                  entry.id === "speed_gro"
+                    ? "/fertilizer/Speed-Gro.png"
+                    : entry.id === "deluxe_speed_gro"
+                      ? "/fertilizer/Deluxe_Speed-Gro.png"
+                      : "/fertilizer/Hyper_Speed-Gro.png"
+                }
+                alt={entry.label}
+                title={`${entry.label} ziehen und auf ein Beet fallen lassen`}
+                draggable={true}
+                onDragStart={(e) => handleFertilizerDragStart(entry.id, e)}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Kontextmenü */}
@@ -324,6 +554,59 @@ export default function FarmMap({
           >
             🗑️ Löschen
           </button>
+        </div>
+      )}
+
+      {sprinklerMenu && (
+        <div
+          ref={sprinklerMenuRef}
+          className="farm-context-menu farm-sprinkler-menu"
+          style={{
+            left: `${sprinklerMenu.x}px`,
+            top: `${sprinklerMenu.y}px`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (!sprinklerMenu) return;
+            if (e.key === "ArrowLeft") {
+              e.preventDefault();
+              onSprinklerChange(sprinklerMenu.bedId, -1);
+              setSprinklerMenu((s) => (s ? { ...s, value: Math.max(0, s.value - 1) } : s));
+            } else if (e.key === "ArrowRight") {
+              e.preventDefault();
+              onSprinklerChange(sprinklerMenu.bedId, 1);
+              setSprinklerMenu((s) => (s ? { ...s, value: s.value + 1 } : s));
+            } else if (e.key === "Escape") {
+              setSprinklerMenu(null);
+            }
+          }}
+        >
+          <div className="farm-sprinkler-menu-row">
+            <span className="farm-sprinkler-menu-label">Sprinkler</span>
+            <span className="farm-sprinkler-menu-value">{sprinklerMenu.value}</span>
+          </div>
+          <div className="farm-sprinkler-menu-actions">
+            <button
+              className="farm-context-item farm-sprinkler-arrow"
+              onClick={() => {
+                onSprinklerChange(sprinklerMenu.bedId, -1);
+                setSprinklerMenu((s) => (s ? { ...s, value: Math.max(0, s.value - 1) } : s));
+              }}
+              disabled={sprinklerMenu.value <= 0}
+            >
+              ←
+            </button>
+            <button
+              className="farm-context-item farm-sprinkler-arrow"
+              onClick={() => {
+                onSprinklerChange(sprinklerMenu.bedId, 1);
+                setSprinklerMenu((s) => (s ? { ...s, value: s.value + 1 } : s));
+              }}
+            >
+              →
+            </button>
+          </div>
         </div>
       )}
     </div>

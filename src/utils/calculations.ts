@@ -1,19 +1,50 @@
-import type { Plant, Planting, SeasonId } from "../data/types";
+import type { FertilizerType, Plant, Planting, SeasonId } from "../data/types";
 import { SEASON_DAYS, SEASON_ORDER } from "../data/seasons";
+
+const FERTILIZER_BONUS: Record<FertilizerType, number> = {
+  none: 0,
+  speed_gro: 0.1,
+  deluxe_speed_gro: 0.25,
+  hyper_speed_gro: 0.33,
+};
+
+export function calcGrowDays(
+  plant: Plant,
+  fertilizer: FertilizerType,
+  agriculturist: boolean,
+): number {
+  const bonus = FERTILIZER_BONUS[fertilizer] + (agriculturist ? 0.1 : 0);
+
+  if (bonus <= 0) {
+    return plant.growDays;
+  }
+
+  return Math.max(1, plant.growDays - Math.ceil(plant.growDays * bonus));
+}
 
 /**
  * Letzter Pflanztag, damit Ernte noch in die Saison fällt
  */
-export function lastPlantDay(plant: Plant): number {
-  return SEASON_DAYS - plant.growDays + 1;
+export function lastPlantDay(
+  plant: Plant,
+  fertilizer: FertilizerType = "none",
+  agriculturist = false,
+): number {
+  return SEASON_DAYS - calcGrowDays(plant, fertilizer, agriculturist) + 1;
 }
 
 /**
  * Alle Erntetage innerhalb der Saison
  */
-export function getHarvestDays(planting: Planting, plant: Plant): number[] {
+export function getHarvestDays(
+  planting: Planting,
+  plant: Plant,
+  fertilizer: FertilizerType = "none",
+  agriculturist = false,
+): number[] {
   const days: number[] = [];
-  let harvest = planting.startDay + plant.growDays;
+  const growDays = calcGrowDays(plant, fertilizer, agriculturist);
+  let harvest = planting.startDay + growDays;
   while (harvest <= SEASON_DAYS) {
     days.push(harvest);
     if (!plant.regrowDays) break;
@@ -25,15 +56,40 @@ export function getHarvestDays(planting: Planting, plant: Plant): number[] {
 /**
  * Gesamtertrag in Gold
  */
-export function calcRevenue(planting: Planting, plant: Plant): number {
-  return getHarvestDays(planting, plant).length * plant.yield * plant.sellPrice;
+export function calcRevenue(
+  planting: Planting,
+  plant: Plant,
+  fertilizer: FertilizerType = "none",
+  agriculturist = false,
+): number {
+  return (
+    getHarvestDays(planting, plant, fertilizer, agriculturist).length *
+    plant.yield *
+    plant.sellPrice
+  );
 }
 
 /**
  * Gewinn (Ertrag minus Samenkosten)
  */
-export function calcProfit(planting: Planting, plant: Plant): number {
-  return calcRevenue(planting, plant) - plant.seedPrice;
+export function calcProfit(
+  planting: Planting,
+  plant: Plant,
+  fertilizer: FertilizerType = "none",
+  agriculturist = false,
+): number {
+  return calcRevenue(planting, plant, fertilizer, agriculturist) - plant.seedPrice;
+}
+
+/**
+ * Effektive Beetgröße nach Abzug von Sprinklern
+ */
+export function getBedEffectiveArea(bed: {
+  width: number;
+  height: number;
+  sprinklers: number;
+}): number {
+  return Math.max(0, bed.width * bed.height - bed.sprinklers);
 }
 
 /**
@@ -76,10 +132,17 @@ export interface DayTask {
  */
 export function getDayTasks(
   day: number,
-  beds: { id: string; name: string; color?: string; plantings: Planting[] }[],
+  beds: {
+    id: string;
+    name: string;
+    color?: string;
+    fertilizer?: FertilizerType;
+    plantings: Planting[];
+  }[],
   plants: Plant[],
   currentSeason: SeasonId,
-  bedsFromPrevSeason: { id: string; plantings: Planting[] }[] = [],
+  bedsFromPrevSeason: { id: string; fertilizer?: FertilizerType; plantings: Planting[] }[] = [],
+  agriculturist = false,
 ): DayTask[] {
   const plantMap = new Map(plants.map((p) => [p.id, p]));
   const tasks: DayTask[] = [];
@@ -93,7 +156,7 @@ export function getDayTasks(
       const plant = plantMap.get(planting.plantId);
       if (!plant) continue;
 
-      const harvestDays = getHarvestDays(planting, plant);
+      const harvestDays = getHarvestDays(planting, plant, bed.fertilizer ?? "none", agriculturist);
       if (harvestDays.includes(day)) harvest = plant;
       if (planting.startDay === day) sow = plant;
     }
@@ -110,9 +173,11 @@ export function getDayTasks(
     const plant = plantMap.get(lastPlanting.plantId);
     if (!plant) continue;
     if (!isCarryover(plant, currentSeason)) continue;
+    const fertilizer = prevBed.fertilizer ?? "none";
 
     // compute harvest days that fall into current season
-    const firstHarvestAbsolute = lastPlanting.startDay + plant.growDays;
+    const firstHarvestAbsolute =
+      lastPlanting.startDay + calcGrowDays(plant, fertilizer, agriculturist);
     // harvest days may be >28 and <=56
     const harvestsInCurrent: number[] = [];
     if (!plant.regrowDays) {

@@ -39,6 +39,21 @@
   border-color: rgba(220, 53, 69, 0.6);
 }
 
+.farm-bed-size-tooltip {
+  position: absolute;
+  z-index: 25;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.92);
+  border: 0.06em solid var(--color-border);
+  border-radius: 0.35em;
+  padding: 0.2em 0.45em;
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--color-accent);
+  box-shadow: 0 0.12em 0.28em rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+}
+
 /* Beete */
 .farm-bed {
   position: absolute;
@@ -62,6 +77,27 @@
 .farm-bed.hovered {
   filter: brightness(1.05);
   box-shadow: 0 0.15em 0.35em rgba(0, 0, 0, 0.12);
+}
+
+.farm-bed.sprinkler-drop-target {
+  border-color: var(--color-accent);
+  box-shadow:
+    0 0 0 0.08em rgba(143, 173, 110, 0.18),
+    0 0.15em 0.35em rgba(0, 0, 0, 0.12);
+}
+
+.farm-bed.fertilizer-drop-target {
+  border-color: var(--color-accent2);
+  box-shadow:
+    0 0 0 0.08em rgba(200, 169, 110, 0.18),
+    0 0.15em 0.35em rgba(0, 0, 0, 0.12);
+}
+
+.farm-bed.plant-drop-target {
+  border-color: rgba(64, 128, 255, 0.6);
+  box-shadow:
+    0 0 0 0.08em rgba(64, 128, 255, 0.12),
+    0 0.15em 0.35em rgba(0, 0, 0, 0.12);
 }
 
 .farm-bed.selected {
@@ -93,12 +129,59 @@
   pointer-events: none;
 }
 
+.farm-bed-sprinkler-count {
+  position: absolute;
+  right: 0.18em;
+  bottom: 0.18em;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.16em;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.65em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.farm-bed-sprinkler-number {
+  line-height: 1;
+}
+
+.farm-bed-sprinkler-icon {
+  width: 1em;
+  height: 1em;
+  object-fit: contain;
+}
+
+.farm-bed-fertilizer-badge {
+  position: absolute;
+  left: 0.18em;
+  bottom: 0.18em;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.8em;
+  height: 0.8em;
+  object-fit: contain;
+}
+
+.farm-bed-fertilizer-icon {
+  width: 0.8em;
+  height: 0.8em;
+  object-fit: contain;
+}
+
 .farm-bed-plant-icons {
   position: absolute;
   top: 1.35em;
   left: 0.18em;
   right: 0.18em;
-  bottom: 0.18em;
+  bottom: 0.32em;
   z-index: 2;
   display: flex;
   flex-wrap: wrap;
@@ -156,6 +239,102 @@
   pointer-events: none;
 }
 
+.farm-sprinkler-source {
+  position: absolute;
+  right: 0.8em;
+  bottom: 0.8em;
+  width: 2.7em;
+  height: 2.7em;
+  object-fit: contain;
+  z-index: 20;
+  cursor: grab;
+  user-select: none;
+  filter: drop-shadow(0 0.2em 0.35em rgba(0, 0, 0, 0.18));
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+
+.farm-sprinkler-source:hover {
+  transform: translateY(-0.05em);
+  filter: drop-shadow(0 0.25em 0.45em rgba(0, 0, 0, 0.22));
+}
+
+.farm-sprinkler-source:active {
+  cursor: grabbing;
+  transform: translateY(0);
+}
+
+.farm-tool-palette {
+  position: absolute;
+  right: 0.8em;
+  bottom: 0.8em;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35em;
+}
+
+.farm-agriculturist-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  font-size: 0.85em;
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.78);
+  border: 0.06em solid var(--color-border);
+  border-radius: 0.4em;
+  padding: 0.25em 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.farm-agriculturist-toggle input {
+  width: 0.95em;
+  height: 0.95em;
+}
+
+.farm-tool-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.45em;
+}
+
+.farm-tool-source {
+  object-fit: contain;
+  cursor: grab;
+  user-select: none;
+  filter: drop-shadow(0 0.2em 0.35em rgba(0, 0, 0, 0.18));
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+
+.farm-tool-source:hover {
+  transform: translateY(-0.05em);
+  filter: drop-shadow(0 0.25em 0.45em rgba(0, 0, 0, 0.22));
+}
+
+.farm-tool-source:active {
+  cursor: grabbing;
+  transform: translateY(0);
+}
+
+.farm-tool-sprinkler-source {
+  width: 2.7em;
+  height: 2.7em;
+}
+
+.farm-tool-fertilizer-source {
+  width: 2.7em;
+  height: 2.7em;
+}
+
+.farm-fertilizer-source {
+  width: 2.15em;
+  height: 2.15em;
+}
+
 /* Kontextmenü */
 .farm-context-menu {
   position: fixed;
@@ -194,4 +373,42 @@
 .farm-context-item.farm-context-delete {
   background: #f7d0d0;
   border-color: rgba(0, 0, 0, 0.03);
+}
+
+.farm-sprinkler-menu {
+  min-width: 4em;
+}
+
+.farm-sprinkler-menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8em;
+  padding: 0 0.35em 0.2em;
+  color: var(--color-text);
+  font-size: 0.95em;
+}
+
+.farm-sprinkler-menu-label {
+  font-weight: 600;
+}
+
+.farm-sprinkler-menu-value {
+  min-width: 1.5em;
+  text-align: right;
+  font-weight: 600;
+}
+
+.farm-sprinkler-menu-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.4em;
+}
+
+.farm-sprinkler-arrow {
+  flex: none;
+  width: 1.8em;
+  padding: 0.28em 0.32em;
+  font-size: 0.9em;
+  text-align: center;
 }

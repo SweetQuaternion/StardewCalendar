@@ -625,7 +625,175 @@ Ersetze alle bisherigen manuellen `localStorage`-Zugriffe durch diesen Hook.
 
 Die App ist vollständig, stabil, persistent und exportierbar. 🎉
 
+## Schritt 10 - Verbesserungen und Bugfixes
+
+1. Beim Klick auf ein leeres Beet steht im Bed-info-panel immer noch "wähle ein beet aus". Da sollte etwas anderes stehen, z.B. dass das Beet gerade leer ist
+
+2. Wenn man den Tag auf einen Tag stellt, an dem Nichts im gewählten Beet wächst, dann sollte dort auch stehen, dass das Beet gerade leer ist. (gleiche Message wie Punkt 1)
+
+3. Es ist nicht möglich, mehrsaisonale Pflanzen am Ende eines Monats zu pflanzen: obwohl sie weiterwachsen könnten, erhält der Nutzer die Meldung, es sei zu spät, da die erste Ernte schon im neuen Monat liegt.
+
+4. Es existieren Sprinkler in den Beeten, auf denen man nichts pflanzen kann. Unten rechts im Grid soll man Sprinkler per Drag and drop auf die Beete ziehen können und somit das Beet rechnerisch um 1 verkleinern. Die Datei ist public/Quality_Sprinkler.png
+
+5. Berücksichtigung von Dünger und Landwirt-Beruf auf die Wachstumsgeschwindigkeit
+
 ---
+
+## Schritt 11: Dünger & Landwirt-Beruf
+
+### Ziel
+
+Der User kann pro Beet einen Dünger und optional den Landwirt-Beruf auswählen. Die Wachstumszeit wird entsprechend angepasst – im Kalender, in den Berechnungen und in der Saisonübersicht.
+
+---
+
+### Hintergrund: Spielregeln
+
+#### Dünger und ihre Beschleunigung
+
+| Dünger                | Bonus | Mit Landwirt |
+| --------------------- | ----- | ------------ |
+| Keiner                | 0%    | 10%          |
+| Geschwind-Wachs       | 10%   | 20%          |
+| Luxus-Geschwind-Wachs | 25%   | 35%          |
+| Hyper Speed-Zucht     | 33%   | 43%          |
+
+Landwirt und Dünger **addieren** sich (nicht multiplizieren).
+
+#### Die Formel
+
+```
+modifiedGrowDays = growDays - ceil(growDays × speedBonus)
+```
+
+Beispiele:
+
+- Blumenkohl (12 Tage) + Geschwind-Wachs (10%): `ceil(12 × 0.1) = 2` → **10 Tage**
+- Blumenkohl + Luxus (25%): `ceil(12 × 0.25) = 3` → **9 Tage**
+- Pastinake (4 Tage) + Geschwind-Wachs (10%): `ceil(4 × 0.1) = 1` → **3 Tage**
+
+#### Wichtige Einschränkungen
+
+- **Nur `growDays` wird beschleunigt – `regrowDays` nie.** Dünger wirkt nur auf die erste Wachstumsphase.
+- Floating-Point-Artefakte aus dem Spielcode (±1 Tag bei wenigen Kantenfällen) werden ignoriert – der Fehler ist vernachlässigbar.
+
+---
+
+### Anweisungen
+
+#### 1. Typen in `types.ts` ergänzen
+
+```ts
+export type FertilizerType = "none" | "speed_gro" | "deluxe_speed_gro" | "hyper_speed_gro";
+
+export interface Fertilizer {
+  id: FertilizerType;
+  label: string;
+  bonus: number; // z.B. 0.10 für 10%
+  color: string; // Farbe für UI-Badge
+}
+```
+
+Füge `fertilizer: FertilizerType` zum `Bed`-Interface hinzu (Default: `'none'`).
+
+#### 2. Daten in `src/data/fertilizers.ts`
+
+```ts
+import { Fertilizer } from "./types";
+
+export const FERTILIZERS: Fertilizer[] = [
+  { id: "none", label: "Kein Dünger", bonus: 0, color: "#ccc" },
+  { id: "speed_gro", label: "Geschwind-Wachs", bonus: 0.1, color: "#a8d8a8" },
+  { id: "deluxe_speed_gro", label: "Luxus-Geschwind-Wachs", bonus: 0.25, color: "#f0d080" },
+  { id: "hyper_speed_gro", label: "Hyper Speed-Zucht", bonus: 0.33, color: "#f4a0c0" },
+];
+```
+
+#### 3. Berechnung in `calculations.ts` ergänzen
+
+```ts
+import { FertilizerType } from "../data/types";
+
+const FERTILIZER_BONUS: Record<FertilizerType, number> = {
+  none: 0,
+  speed_gro: 0.1,
+  deluxe_speed_gro: 0.25,
+  hyper_speed_gro: 0.33,
+};
+
+export function calcGrowDays(
+  plant: Plant,
+  fertilizer: FertilizerType,
+  agriculturist: boolean,
+): number {
+  const bonus = FERTILIZER_BONUS[fertilizer] + (agriculturist ? 0.1 : 0);
+  if (bonus === 0) return plant.growDays;
+  return plant.growDays - Math.ceil(plant.growDays * bonus);
+}
+```
+
+Überall wo bisher `plant.growDays` direkt verwendet wird (Kalender, Erntetage, Tagesaufgaben, Saisonübersicht), muss stattdessen `calcGrowDays(plant, bed.fertilizer, agriculturist)` aufgerufen werden.
+
+#### 4. Globaler Landwirt-State in `App.tsx`
+
+```ts
+const [agriculturist, setAgriculturist] = useLocalStorage<boolean>("sdv-agriculturist", false);
+```
+
+Dieser State gilt für alle Beete gleichzeitig – der Beruf ist eine globale Spieleigenschaft.
+
+#### 5. UI – Dünger pro Beet
+
+Füge im **Beet-Infopanel** (`BedInfoPanel.tsx`) eine Dünger-Auswahl hinzu:
+
+- Vier Buttons oder ein `<select>`-Dropdown, eines pro `FertilizerType`
+- Aktiver Dünger hervorgehoben (Hintergrundfarbe des Düngers aus `fertilizers.ts`)
+- Bei Änderung: `bed.fertilizer` updaten und in localStorage speichern
+- Kleines Badge im Kalender-Block zeigt den aktiven Dünger an (Dünger-Farbe als Punkt oder Streifen)
+
+#### 6. UI – Landwirt-Toggle global
+
+Füge im **Header** einen einfachen Toggle-Button hinzu:
+
+- Text: „🌾 Landwirt"
+- Aktiv: grün hervorgehoben, `agriculturist === true`
+- Inaktiv: ausgegraut
+- Zustand wird in localStorage gespeichert (`'sdv-agriculturist'`)
+
+#### 7. Auswirkungen auf andere Komponenten
+
+Alle folgenden Komponenten müssen `agriculturist` und `bed.fertilizer` als Props erhalten und `calcGrowDays` statt `plant.growDays` verwenden:
+
+- `BedCalendar.tsx` – Blockbreite und Erntetage
+- `BedInfoPanel.tsx` – Erntetage, Ertrag, Gewinn
+- `DayNavigator.tsx` – Tagesaufgaben
+- `SeasonSummary.tsx` – Gesamtertrag, Einkaufsliste
+- `calculations.ts` → `getHarvestDays()` bekommt `fertilizer` und `agriculturist` als Parameter:
+
+```ts
+export function getHarvestDays(
+  planting: Planting,
+  plant: Plant,
+  fertilizer: FertilizerType,
+  agriculturist: boolean,
+): number[] {
+  const growDays = calcGrowDays(plant, fertilizer, agriculturist);
+  const days: number[] = [];
+  let harvest = planting.startDay + growDays;
+  while (harvest <= SEASON_DAYS) {
+    days.push(harvest);
+    if (!plant.regrowDays) break;
+    harvest += plant.regrowDays; // regrowDays bleibt immer unverändert!
+  }
+  return days;
+}
+```
+
+---
+
+### Ergebnis von Schritt 11
+
+Jedes Beet kann individuell gedüngt werden. Der Landwirt-Beruf ist global umschaltbar. Alle Berechnungen – Kalender, Erntetage, Ertrag, Tagesaufgaben – reagieren automatisch auf diese Einstellungen. 🌱
 
 ## Technische Konventionen (gelten für alle Schritte)
 
@@ -638,62 +806,282 @@ Die App ist vollständig, stabil, persistent und exportierbar. 🎉
 
 ---
 
-## Berechnungs-Referenz `src/utils/calculations.ts`
+## Schritt 12: Pflanzenqualität & probabilistische Ertragsschätzung
+
+### Ziel
+
+Jedes Beet kann einen Dünger haben – entweder einen Geschwindigkeits-Dünger (aus Schritt 11) oder einen Qualitäts-Dünger oder ein Retaining Soil, aber nie gleichzeitig. Basierend auf Farming-Level und Dünger wird eine Wahrscheinlichkeitsverteilung über die vier Qualitätsstufen berechnet und der erwartete Ertrag angezeigt.
+
+---
+
+### Hintergrund: Spielregeln
+
+#### Ein Beet – ein Dünger
+
+Es gibt drei Dünger-Kategorien, die sich alle gegenseitig ausschließen – pro Beet kann immer nur **eine** aktiv sein:
+
+- **Geschwindigkeits-Dünger** (aus Schritt 11): Geschwind-Wachs, Luxus-Geschwind-Wachs, Hyper-Speed-Zücht
+- **Qualitäts-Dünger**: Standarddünger, Qualitätsdünger, Deluxe-Dünger
+- **Retaining Soil**: Hydrogel (Standard), Hydrogel (Qualität), Deluxe Hydro-Boden
+  Wählt der User einen Dünger aus einer Kategorie, werden die anderen beiden Kategorien automatisch auf „Kein Dünger" zurückgesetzt. Retaining Soil hat **keinen Einfluss auf Wachstum oder Qualität** – es erscheint ausschließlich in der Einkaufsliste.
+
+#### Qualitätsstufen und Preismultiplikatoren
+
+| Qualität | Symbol | Preismultiplikator |
+| -------- | ------ | ------------------ |
+| Normal   | ⭐     | × 1.0              |
+| Silber   | ⭐⭐   | × 1.25             |
+| Gold     | ⭐⭐⭐ | × 1.5              |
+| Iridium  | 💎     | × 2.0              |
+
+#### Die exakte Formel (direkt aus dem Spielcode v1.5+)
+
+`fertilizerLevel`: 0 = kein Dünger, 1 = Standarddünger, 2 = Qualitäts-Dünger, 3 = Deluxe-Dünger
+
+```
+chanceGold    = 0.2 * (farmingLevel / 10)
+              + 0.2 * fertilizerLevel * ((farmingLevel + 2) / 12)
+              + 0.01
+
+chanceSilver  = min(0.75, chanceGold * 2)
+
+chanceIridium = chanceGold / 2   ← nur wenn fertilizerLevel === 3 (Luxus-Dünger)
+```
+
+Daraus ergeben sich die **tatsächlichen** Wahrscheinlichkeiten:
+
+**Ohne Luxus-Dünger (fertilizerLevel 0–2):**
+
+```
+P(Gold)   = chanceGold
+P(Silber) = (1 - chanceGold) * chanceSilver
+P(Normal) = 1 - P(Gold) - P(Silber)
+P(Iridium)= 0
+```
+
+**Mit Luxus-Dünger (fertilizerLevel 3):**
+
+```
+P(Iridium) = chanceIridium
+P(Gold)    = (1 - chanceIridium) * chanceGold
+P(Silber)  = 1 - P(Iridium) - P(Gold)   ← Minimum, da Normal nicht möglich
+P(Normal)  = 0   ← mit Luxus-Dünger gibt es kein Normal
+```
+
+#### Wichtige Sonderregel für Multi-Yield-Pflanzen
+
+Bei Pflanzen die mehrere Früchte pro Ernte liefern (Heidelbeere `yield: 3`, Preiselbeere `yield: 2`, Kaffee `yield: 4`): nur **eine** Frucht pro Ernte profitiert vom Qualitäts-Dünger – der Rest ist immer Normal. Das muss in der Ertragsberechnung berücksichtigt werden.
+
+#### Farming-Level
+
+- Minimum: 0, Maximum: 10 (mit Food-Buffs theoretisch bis 14, aber 10 reicht für die App)
+- Globale Einstellung, gilt für alle Beete
+- Wird neben dem Landwirt-Toggle im Header angezeigt
+
+---
+
+### Anweisungen
+
+#### 1. Typen in `types.ts` anpassen
+
+Ersetze `FertilizerType` durch ein erweitertes System:
 
 ```ts
-import { Plant, Planting, SeasonId } from "../data/types";
-import { SEASON_DAYS, SEASON_ORDER } from "../data/seasons";
+export type SpeedFertilizerType = "none" | "speed_gro" | "deluxe_speed_gro" | "hyper_speed_gro";
+export type QualityFertilizerType = "none" | "basic" | "quality" | "deluxe";
+export type RetainingFertilizerType = "none" | "basic" | "quality" | "deluxe";
 
-// Letzter Pflanztag, damit Ernte noch in die Saison fällt
-export function lastPlantDay(plant: Plant): number {
-  return SEASON_DAYS - plant.growDays + 1;
-}
+// Ein Beet hat immer genau einen Dünger-Slot – alle drei Kategorien schließen sich aus:
+export type FertilizerType =
+  | { category: "speed"; type: SpeedFertilizerType }
+  | { category: "quality"; type: QualityFertilizerType }
+  | { category: "retaining"; type: RetainingFertilizerType };
 
-// Alle Erntetage innerhalb der Saison
-export function getHarvestDays(planting: Planting, plant: Plant): number[] {
-  const days: number[] = [];
-  let harvest = planting.startDay + plant.growDays;
-  while (harvest <= SEASON_DAYS) {
-    days.push(harvest);
-    if (!plant.regrowDays) break;
-    harvest += plant.regrowDays;
-  }
-  return days;
-}
+// Hilfsfunktion zum Erstellen des Default-Wertes:
+export const NO_FERTILIZER: FertilizerType = { category: "speed", type: "none" };
+```
 
-// Gesamtertrag in Gold
-export function calcRevenue(planting: Planting, plant: Plant): number {
-  return getHarvestDays(planting, plant).length * plant.yield * plant.sellPrice;
-}
+Passe `Bed` an:
 
-// Gewinn (Ertrag minus Samenkosten)
-export function calcProfit(planting: Planting, plant: Plant): number {
-  return calcRevenue(planting, plant) - plant.seedPrice;
-}
-
-// Kollisionsprüfung zweier Beete
-export function bedsOverlap(
-  a: { x: number; y: number; width: number; height: number },
-  b: { x: number; y: number; width: number; height: number },
-): boolean {
-  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
-}
-
-// Gibt die Vorsaison zurück (zyklisch)
-export function prevSeason(season: SeasonId): SeasonId {
-  const idx = SEASON_ORDER.indexOf(season);
-  return SEASON_ORDER[(idx + SEASON_ORDER.length - 1) % SEASON_ORDER.length];
-}
-
-// Prüft ob eine Pflanzung aus der Vorsaison in die aktuelle Saison hineinwächst
-export function isCarryover(plant: Plant, currentSeason: SeasonId): boolean {
-  const prev = prevSeason(currentSeason);
-  return plant.seasons.includes(prev) && plant.seasons.includes(currentSeason);
+```ts
+export interface Bed {
+  // ... (wie bisher)
+  fertilizer: FertilizerType; // ersetzt das bisherige `fertilizer: SpeedFertilizerType`
 }
 ```
+
+#### 2. Daten in `fertilizers.ts` erweitern
+
+```ts
+export const QUALITY_FERTILIZER_LEVEL: Record<QualityFertilizerType, number> = {
+  none: 0,
+  basic: 1,
+  quality: 2,
+  deluxe: 3,
+};
+
+export const QUALITY_FERTILIZERS = [
+  { id: "none" as QualityFertilizerType, label: "Kein Qualitäts-Dünger", color: "#ccc" },
+  { id: "basic" as QualityFertilizerType, label: "Basis-Dünger", color: "#c8e6b0" },
+  { id: "quality" as QualityFertilizerType, label: "Qualitäts-Dünger", color: "#f0d080" },
+  { id: "deluxe" as QualityFertilizerType, label: "Luxus-Dünger", color: "#d0a8f8" },
+];
+
+export const RETAINING_FERTILIZERS: {
+  id: RetainingFertilizerType;
+  label: string;
+  buyPrice: number;
+  color: string;
+}[] = [
+  { id: "none", label: "Kein Retaining Soil", buyPrice: 0, color: "#ccc" },
+  { id: "basic", label: "Retaining Soil", buyPrice: 100, color: "#b0d4f0" },
+  { id: "quality", label: "Qualitäts-Retaining Soil", buyPrice: 150, color: "#80b8e8" },
+  { id: "deluxe", label: "Luxus-Retaining Soil", buyPrice: 0, color: "#5090d0" }, // nur craftbar, kein Kaufpreis
+];
+```
+
+#### 3. Berechnung in `calculations.ts` ergänzen
+
+```ts
+export interface QualityDistribution {
+  normal: number; // Wahrscheinlichkeit 0–1
+  silver: number;
+  gold: number;
+  iridium: number;
+}
+
+export function calcQualityDistribution(
+  farmingLevel: number,
+  fertilizerLevel: number, // 0–3
+): QualityDistribution {
+  const chanceGold =
+    0.2 * (farmingLevel / 10) + 0.2 * fertilizerLevel * ((farmingLevel + 2) / 12) + 0.01;
+  const chanceSilver = Math.min(0.75, chanceGold * 2);
+
+  if (fertilizerLevel >= 3) {
+    // Luxus-Dünger: Iridium möglich, Normal nicht
+    const iridium = chanceGold / 2;
+    const gold = (1 - iridium) * chanceGold;
+    const silver = Math.max(0, 1 - iridium - gold);
+    return { normal: 0, silver, gold, iridium };
+  } else {
+    const gold = chanceGold;
+    const silver = (1 - chanceGold) * chanceSilver;
+    return { normal: Math.max(0, 1 - gold - silver), silver, gold, iridium: 0 };
+  }
+}
+
+// Preismultiplikatoren
+const QUALITY_MULTIPLIER = { normal: 1.0, silver: 1.25, gold: 1.5, iridium: 2.0 };
+
+// Erwarteter Verkaufspreis einer einzelnen Frucht (Durchschnitt über Qualitäten)
+export function expectedSellPrice(basePrice: number, dist: QualityDistribution): number {
+  return (
+    basePrice *
+    (dist.normal * QUALITY_MULTIPLIER.normal +
+      dist.silver * QUALITY_MULTIPLIER.silver +
+      dist.gold * QUALITY_MULTIPLIER.gold +
+      dist.iridium * QUALITY_MULTIPLIER.iridium)
+  );
+}
+
+// Erwarteter Gesamtertrag einer Pflanzung (berücksichtigt Multi-Yield-Sonderregel)
+export function calcExpectedRevenue(
+  planting: Planting,
+  plant: Plant,
+  fertilizer: FertilizerType,
+  farmingLevel: number,
+  agriculturist: boolean,
+): number {
+  const harvests = getHarvestDays(planting, plant, fertilizer, agriculturist).length;
+
+  // Qualitäts-Dünger-Level bestimmen
+  const fertLevel =
+    fertilizer.category === "quality" ? QUALITY_FERTILIZER_LEVEL[fertilizer.type] : 0;
+
+  const dist = calcQualityDistribution(farmingLevel, fertLevel);
+  const avgPrice = expectedSellPrice(plant.sellPrice, dist);
+
+  if (plant.yield === 1) {
+    // Einfache Pflanze: alle Früchte profitieren von Qualität
+    return harvests * avgPrice;
+  } else {
+    // Multi-Yield (Heidelbeere, Preiselbeere, Kaffee):
+    // nur 1 Frucht pro Ernte in verbesserter Qualität, der Rest ist Normal
+    const bonusFruits = harvests * 1 * avgPrice;
+    const normalFruits = harvests * (plant.yield - 1) * plant.sellPrice;
+    return bonusFruits + normalFruits;
+  }
+}
+```
+
+#### 4. UI – Dünger-Auswahl im Beet-Infopanel
+
+Ersetze das bisherige einzelne Dünger-Dropdown durch **drei Gruppen**, die sich gegenseitig ausschließen:
+
+- **Gruppe A – Geschwindigkeit:** Kein Dünger / Geschwind-Wachs / Luxus-Geschwind-Wachs / Hyper Speed-Zucht
+- **Gruppe B – Qualität:** Kein Dünger / Basis-Dünger / Qualitäts-Dünger / Luxus-Dünger
+- **Gruppe C – Retaining Soil:** Kein Dünger / Retaining Soil / Qualitäts-Retaining Soil / Luxus-Retaining Soil
+  Dargestellt als drei Zeilen Buttons oder drei `<select>`-Felder. Wenn in einer Gruppe etwas außer „Kein Dünger" gewählt wird, werden die anderen beiden Gruppen automatisch auf „Kein Dünger" zurückgesetzt. Hinweistext darunter: „ℹ️ Pro Beet kann nur ein Dünger verwendet werden."
+
+Retaining Soil zeigt **keine** Auswirkung auf Kalender oder Ertrag – nur die Einkaufsliste ändert sich.
+
+#### 4a. Retaining Soil in der Einkaufsliste (`SeasonSummary.tsx`)
+
+Ergänze die Einkaufsliste um einen separaten Abschnitt für Retaining Soil:
+
+- Aggregiere alle Beete mit `fertilizer.category === 'retaining'` und `fertilizer.type !== 'none'`
+- Zeige pro Retaining-Soil-Typ: Name | Anzahl Beete | Kaufpreis pro Einheit | Gesamtkosten
+- Luxus-Retaining Soil hat `buyPrice: 0` (nur craftbar) → statt Preis den Hinweis „craftbar" anzeigen
+- Gesamtkosten für Retaining Soil separat ausweisen, aber zur Gesamtsumme aller Samenkosten dazurechnen
+
+#### 5. UI – Farming-Level im Header
+
+Neben dem Landwirt-Toggle im Header:
+
+```
+🌾 Landwirt [Toggle]    Farming-Level: [▼] [10] [▲]
+```
+
+- Pfeil-Buttons `▼` / `▲` zum Ändern des Levels (Min: 0, Max: 10)
+- Oder einfaches `<input type="number" min="0" max="10">`
+- State: `useLocalStorage<number>('sdv-farming-level', 0)`
+- Wird als Prop an alle Berechnungskomponenten weitergegeben
+
+#### 6. Anzeige der Qualitätsverteilung
+
+Im **Beet-Infopanel**, unterhalb der bisherigen Ertragszeile, füge hinzu:
+
+```
+Qualitätsverteilung:
+⭐ Normal  45%   ⭐⭐ Silber  34%   ⭐⭐⭐ Gold  21%   💎 Iridium  0%
+
+Erwarteter Ertrag: 312 G  (∅ pro Ernte: 156 G)
+```
+
+- Prozentwerte aus `calcQualityDistribution`, gerundet auf ganze Zahlen
+- Iridium-Zeile nur anzeigen wenn Luxus-Dünger aktiv
+- Wenn `fertilizerLevel === 0` und `farmingLevel === 0`: Hinweis „Mit höherem Farming-Level oder Dünger steigt die Qualität."
+  In der **Saisonübersicht** (rechte Spalte): Gesamtertrag basiert nun auf `calcExpectedRevenue` statt dem einfachen `calcRevenue`.
+
+---
+
+### Ergebnis von Schritt 12
+
+Der User sieht pro Beet eine realistische Qualitätsverteilung und einen erwarteten Durchschnittsertrag. Alle drei Dünger-Kategorien schließen sich sauber aus. Retaining Soil taucht korrekt in der Einkaufsliste auf, ohne Berechnungen zu beeinflussen. Die Ertragsberechnung in allen Komponenten ist nun probabilistisch korrekt. 🌱
 
 ---
 
 ## Viel Spaß beim Coden! 🌾
 
 Jeder Schritt ist einzeln an Copilot übergebbar und hinterlässt eine funktionsfähige App-Version. Pflanzbilder liegen unter `/public/plants/<imageFile>` und werden als vorhanden vorausgesetzt.
+
+---
+
+## Notizen
+
+3. Gedanken um mehrere Jahre machen
+
+4. Qualität der Pflanzen probabilistisch
+
+5. "Hab ich schon" in der Einkaufsliste implementieren
