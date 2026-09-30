@@ -155,6 +155,7 @@ export const en = {
   // FarmMap
   "farmMap.level": "Level",
   "farmMap.agriculturist": "🌾 Agriculturist",
+  "farmMap.tiller": "🌾 Tiller",
   "farmMap.decreaseLevel": "Decrease Level",
   "farmMap.increaseLevel": "Increase Level",
   "farmMap.farmingLevel": "Farming Level",

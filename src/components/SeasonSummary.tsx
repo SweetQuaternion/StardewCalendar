@@ -18,6 +18,7 @@ interface SeasonSummaryProps {
   plants: Plant[];
   farmingLevel: number;
   agriculturist?: boolean;
+  tiller?: boolean;
 }
 
 type ShoppingRow = {
@@ -41,6 +42,7 @@ function calcCarryoverHarvestRevenue(
   fertilizer: Bed["fertilizer"],
   farmingLevel: number,
   agriculturist: boolean,
+  tiller: boolean,
 ): number {
   const harvestDays: number[] = [];
   let harvestDay = planting.startDay + calcGrowDays(plant, fertilizer, agriculturist);
@@ -57,7 +59,7 @@ function calcCarryoverHarvestRevenue(
     harvestDay += plant.regrowDays;
   }
 
-  return harvestDays.length * calcExpectedHarvestValue(plant, fertilizer, farmingLevel);
+  return harvestDays.length * calcExpectedHarvestValue(plant, fertilizer, farmingLevel, tiller);
 }
 
 export default function SeasonSummary({
@@ -67,6 +69,7 @@ export default function SeasonSummary({
   plants,
   farmingLevel,
   agriculturist = false,
+  tiller = false,
 }: SeasonSummaryProps) {
   const { t } = useI18n();
   const SEASON_LABELS: Record<SeasonId, string> = {
@@ -218,6 +221,7 @@ export default function SeasonSummary({
                 bed.fertilizer,
                 farmingLevel,
                 agriculturist,
+                tiller,
               ) *
                 getBedEffectiveArea(bed),
             0,
@@ -237,6 +241,7 @@ export default function SeasonSummary({
           entry.bed.fertilizer,
           farmingLevel,
           agriculturist,
+          tiller,
         ) * getBedEffectiveArea(entry.bed),
       isCarryover: true,
       carryoverSeasonLabel: SEASON_LABELS[entry.previousSeasonId],

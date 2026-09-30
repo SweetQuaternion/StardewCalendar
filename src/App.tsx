@@ -36,6 +36,7 @@ export default function App() {
   const [draggedPlantId, setDraggedPlantId] = useState<string | null>(null);
   const [hoveredBedId, setHoveredBedId] = useState<string | null>(null);
   const [agriculturist, setAgriculturist] = useLocalStorage<boolean>("sdv-agriculturist", false);
+  const [tiller, setTiller] = useLocalStorage<boolean>("sdv-tiller", false);
   const [farmingLevel, setFarmingLevel] = useLocalStorage<number>("sdv-farming-level", 0);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const seasonOrder: SeasonId[] = ["spring", "summer", "fall", "winter"];
@@ -569,6 +570,8 @@ export default function App() {
             selectedSeason={selectedSeason}
             onPlantDragStart={setDraggedPlantId}
             onPlantDragEnd={() => setDraggedPlantId(null)}
+            agriculturist={agriculturist}
+            tiller={tiller}
           />
         </aside>
 
@@ -586,6 +589,7 @@ export default function App() {
                 draggedPlantId={draggedPlantId}
                 bedsFromPrevSeason={prevSeasonBeds}
                 agriculturist={agriculturist}
+                // tiller not needed in BedCalendar
               />
             </div>
             <BedInfoPanel
@@ -596,6 +600,7 @@ export default function App() {
               currentDay={currentDay}
               farmingLevel={farmingLevel}
               agriculturist={agriculturist}
+              tiller={tiller}
             />
             <aside className="season-overview-panel placeholder">
               <DayNavigator
@@ -629,6 +634,8 @@ export default function App() {
               plants={PLANTS}
               agriculturist={agriculturist}
               onAgriculturistChange={setAgriculturist}
+              tiller={tiller}
+              onTillerChange={setTiller}
               farmingLevel={farmingLevel}
               onFarmingLevelChange={setFarmingLevel}
             />
@@ -643,6 +650,7 @@ export default function App() {
             plants={PLANTS}
             farmingLevel={farmingLevel}
             agriculturist={agriculturist}
+            tiller={tiller}
           />
         </aside>
       </div>

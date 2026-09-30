@@ -276,6 +276,12 @@
   gap: 0.35em;
 }
 
+.checkboxes {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5em;
+}
+
 .farm-agriculturist-toggle {
   display: flex;
   align-items: center;

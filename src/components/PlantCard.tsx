@@ -2,6 +2,8 @@ import "./PlantCard.css";
 
 import type { DragEvent } from "react";
 import { useI18n } from "../contexts/I18nContext";
+import { calcGrowDays } from "../utils/calculations";
+import { NO_FERTILIZER } from "../data/types";
 
 import type { Plant } from "../data/types";
 
@@ -9,9 +11,17 @@ interface PlantCardProps {
   plant: Plant;
   onDragStart?: (plantId: string) => void;
   onDragEnd?: () => void;
+  agriculturist?: boolean;
+  tiller?: boolean;
 }
 
-export function PlantCard({ plant, onDragStart, onDragEnd }: PlantCardProps) {
+export function PlantCard({
+  plant,
+  onDragStart,
+  onDragEnd,
+  agriculturist = false,
+  tiller = false,
+}: PlantCardProps) {
   const { t } = useI18n();
   const handleDragStart = (event: DragEvent<HTMLDivElement>) => {
     onDragStart?.(plant.id);
@@ -19,6 +29,9 @@ export function PlantCard({ plant, onDragStart, onDragEnd }: PlantCardProps) {
     event.dataTransfer.setData("text/plain", `plant:${plant.id}`);
     event.dataTransfer.effectAllowed = "copy";
   };
+
+  const displayGrowDays = calcGrowDays(plant, NO_FERTILIZER, agriculturist);
+  const displayPrice = Math.round(plant.sellPrice * (tiller ? 1.1 : 1));
 
   return (
     <div
@@ -39,13 +52,13 @@ export function PlantCard({ plant, onDragStart, onDragEnd }: PlantCardProps) {
 
         <div className="plant-card-meta-row">
           <span className="plant-card-growth">
-            🌱 {plant.growDays} {t("plant.days")}
+            🌱 {displayGrowDays} {t("plant.days")}
             {plant.regrowDays
               ? ` · ${t("plant.regrow")} ${t("plant.every")} ${plant.regrowDays} ${t("plant.days")}`
               : ""}
           </span>
           <span className="plant-card-price">
-            {t("plant.price")} {plant.sellPrice} G
+            {t("plant.price")} {displayPrice} G
           </span>
         </div>
       </div>

@@ -19,6 +19,7 @@ interface BedInfoPanelProps {
   currentDay: number;
   farmingLevel: number;
   agriculturist: boolean;
+  tiller: boolean;
 }
 
 export default function BedInfoPanel({
@@ -29,6 +30,7 @@ export default function BedInfoPanel({
   currentDay,
   farmingLevel,
   agriculturist,
+  tiller,
 }: BedInfoPanelProps) {
   const { t, language } = useI18n();
   const formatSeasonDay = (day: number) =>
@@ -86,10 +88,11 @@ export default function BedInfoPanel({
   const bedSize = getBedEffectiveArea(bed);
   const totalRevenue =
     plant && planting
-      ? calcExpectedRevenue(planting, plant, bed.fertilizer, farmingLevel, agriculturist) * bedSize
+      ? calcExpectedRevenue(planting, plant, bed.fertilizer, farmingLevel, agriculturist, tiller) *
+        bedSize
       : 0;
   const expectedHarvestValue =
-    plant && planting ? calcExpectedHarvestValue(plant, bed.fertilizer, farmingLevel) : 0;
+    plant && planting ? calcExpectedHarvestValue(plant, bed.fertilizer, farmingLevel, tiller) : 0;
   const seedCosts = plant ? plant.seedPrice * bedSize : 0;
   const totalProfit = totalRevenue - seedCosts;
 

@@ -23,6 +23,8 @@ interface Props {
   plants: Plant[];
   agriculturist: boolean;
   onAgriculturistChange: (value: boolean) => void;
+  tiller: boolean;
+  onTillerChange: (value: boolean) => void;
   farmingLevel: number;
   onFarmingLevelChange: (value: number) => void;
 }
@@ -45,6 +47,8 @@ export default function FarmMap({
   plants,
   agriculturist,
   onAgriculturistChange,
+  tiller,
+  onTillerChange,
   onPlantDropToBed,
   farmingLevel,
   onFarmingLevelChange,
@@ -546,14 +550,28 @@ export default function FarmMap({
             </button>
           </div>
 
-          <label className="farm-agriculturist-toggle">
-            <input
-              type="checkbox"
-              checked={agriculturist}
-              onChange={(e) => onAgriculturistChange(e.target.checked)}
-            />
-            <span>{t("farmMap.agriculturist")}</span>
-          </label>
+          <div className="checkboxes">
+            <label className="farm-agriculturist-toggle">
+              <input
+                type="checkbox"
+                checked={tiller}
+                onChange={(e) => onTillerChange(e.target.checked)}
+              />
+              <span>{t("farmMap.tiller")}</span>
+            </label>
+            <label className="farm-agriculturist-toggle">
+              <input
+                type="checkbox"
+                checked={agriculturist}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  onAgriculturistChange(checked);
+                  onTillerChange(checked);
+                }}
+              />
+              <span>{t("farmMap.agriculturist")}</span>
+            </label>
+          </div>
 
           <div className="farm-tool-row">
             <img

@@ -158,6 +158,7 @@ export const de = {
   // FarmMap
   "farmMap.level": "Stufe",
   "farmMap.agriculturist": "🌾 Landwirt",
+  "farmMap.tiller": "🌾 Ackerbauer",
   "farmMap.decreaseLevel": "Stufe verringern",
   "farmMap.increaseLevel": "Stufe erhöhen",
   "farmMap.farmingLevel": "Landwirt-Stufe",

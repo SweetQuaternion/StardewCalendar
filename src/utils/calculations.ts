@@ -95,16 +95,18 @@ export function calcExpectedHarvestValue(
   plant: Plant,
   fertilizer: FertilizerType,
   farmingLevel: number,
+  tiller = false,
 ): number {
   const fertilizerLevel = getQualityFertilizerLevel(fertilizer);
   const qualityDistribution = calcQualityDistribution(farmingLevel, fertilizerLevel);
   const oneFruitValue = expectedSellPrice(plant.sellPrice, qualityDistribution);
+  const valueMultiplier = tiller ? 1.1 : 1;
 
   if (plant.yield <= 1) {
-    return oneFruitValue * plant.yield;
+    return oneFruitValue * plant.yield * valueMultiplier;
   }
 
-  return oneFruitValue + (plant.yield - 1) * plant.sellPrice;
+  return oneFruitValue * valueMultiplier + (plant.yield - 1) * plant.sellPrice * valueMultiplier;
 }
 
 export function calcExpectedRevenue(
@@ -113,10 +115,14 @@ export function calcExpectedRevenue(
   fertilizer?: FertilizerType,
   farmingLevel = 0,
   agriculturist = false,
+  tiller = false,
 ): number {
   const harvestCount = getHarvestDays(planting, plant, fertilizer, agriculturist).length;
   if (!Number.isFinite(harvestCount)) return 0;
-  return harvestCount * calcExpectedHarvestValue(plant, fertilizer ?? NO_FERTILIZER, farmingLevel);
+  return (
+    harvestCount *
+    calcExpectedHarvestValue(plant, fertilizer ?? NO_FERTILIZER, farmingLevel, tiller)
+  );
 }
 
 /**
@@ -158,12 +164,10 @@ export function calcRevenue(
   plant: Plant,
   fertilizer?: FertilizerType,
   agriculturist = false,
+  tiller = false,
 ): number {
-  return (
-    getHarvestDays(planting, plant, fertilizer, agriculturist).length *
-    plant.yield *
-    plant.sellPrice
-  );
+  const harvestCount = getHarvestDays(planting, plant, fertilizer, agriculturist).length;
+  return harvestCount * plant.yield * plant.sellPrice * (tiller ? 1.1 : 1);
 }
 
 /**
@@ -174,8 +178,9 @@ export function calcProfit(
   plant: Plant,
   fertilizer?: FertilizerType,
   agriculturist = false,
+  tiller = false,
 ): number {
-  return calcRevenue(planting, plant, fertilizer, agriculturist) - plant.seedPrice;
+  return calcRevenue(planting, plant, fertilizer, agriculturist, tiller) - plant.seedPrice;
 }
 
 /**

@@ -9,9 +9,17 @@ interface PlantListProps {
   selectedSeason: SeasonId;
   onPlantDragStart?: (plantId: string) => void;
   onPlantDragEnd?: () => void;
+  agriculturist?: boolean;
+  tiller?: boolean;
 }
 
-export function PlantList({ selectedSeason, onPlantDragStart, onPlantDragEnd }: PlantListProps) {
+export function PlantList({
+  selectedSeason,
+  onPlantDragStart,
+  onPlantDragEnd,
+  agriculturist = false,
+  tiller = false,
+}: PlantListProps) {
   const { t } = useI18n();
   const seasonPlants = PLANTS.filter((plant) => plant.seasons.includes(selectedSeason));
 
@@ -25,6 +33,8 @@ export function PlantList({ selectedSeason, onPlantDragStart, onPlantDragEnd }: 
             plant={plant}
             onDragStart={onPlantDragStart}
             onDragEnd={onPlantDragEnd}
+            agriculturist={agriculturist}
+            tiller={tiller}
           />
         ))}
       </div>
