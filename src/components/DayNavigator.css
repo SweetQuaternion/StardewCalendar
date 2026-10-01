@@ -73,6 +73,16 @@
   overflow: auto;
 }
 
+.day-nav-birthday {
+  color: var(--color-text-light);
+  /* font-size: 0.9em; */
+}
+
+.day-nav-festival {
+  color: var(--color-text-light);
+  /* font-size: 0.9em; */
+}
+
 .day-nav-empty {
   color: var(--color-text-light);
   font-size: 0.9em;

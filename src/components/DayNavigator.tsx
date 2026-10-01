@@ -3,6 +3,7 @@ import type { Bed, Plant, SeasonId } from "../data/types";
 import { getDayTasks } from "../utils/calculations";
 import type { DayTask } from "../utils/calculations";
 import { useI18n } from "../contexts/I18nContext";
+import { getBirthday, getHolidays } from "../data/holidays";
 
 interface DayNavigatorProps {
   currentDay: number;
@@ -35,6 +36,7 @@ export default function DayNavigator({
     bedsFromPrevSeason,
     agriculturist,
   );
+  const festival = getHolidays(selectedSeason, currentDay);
   const { t, language } = useI18n();
   const SEASON_LABELS: Record<SeasonId, string> = {
     spring: t("season.spring"),
@@ -81,6 +83,14 @@ export default function DayNavigator({
       </div>
 
       <div className="day-nav-tasks">
+        {getBirthday(selectedSeason, currentDay) ? (
+          <div className="day-nav-birthday">
+            🎂 {t("day.birthday")} {t(getBirthday(selectedSeason, currentDay)?.name ?? "")}
+          </div>
+        ) : null}
+        {festival ? (
+          <div className="day-nav-festival">🥳 {t(`festival.${festival.name}`)}</div>
+        ) : null}
         {tasks.length === 0 ? (
           <div className="day-nav-empty">{t("day.noTasks")}</div>
         ) : (

@@ -229,7 +229,7 @@ export const SEASON_ORDER: SeasonId[] = ["spring", "summer", "fall", "winter"];
 
 ```ts
 { id: 'pumpkin',     name: 'Kürbis',       seasons: ['fall'],             growDays: 13, regrowDays: null, sellPrice: 320, seedPrice: 100, yield: 1, color: '#e87820', imageFile: 'pumpkin.png' },
-{ id: 'yam',         name: 'Yam',          seasons: ['fall'],             growDays: 10, regrowDays: null, sellPrice: 160, seedPrice: 60,  yield: 1, color: '#c06840', imageFile: 'yam.png' },
+{ id: 'yam',         name: 'Süßkartoffel', seasons: ['fall'],             growDays: 10, regrowDays: null, sellPrice: 160, seedPrice: 60,  yield: 1, color: '#c06840', imageFile: 'yam.png' },
 { id: 'cranberry',   name: 'Preiselbeere', seasons: ['fall'],             growDays: 7,  regrowDays: 5,    sellPrice: 75,  seedPrice: 240, yield: 2, color: '#c83050', imageFile: 'cranberry.png' },
 { id: 'artichoke',   name: 'Artischocke',  seasons: ['fall'],             growDays: 8,  regrowDays: null, sellPrice: 160, seedPrice: 30,  yield: 1, color: '#80a040', imageFile: 'artichoke.png' },
 { id: 'grape',       name: 'Traube',       seasons: ['fall'],             growDays: 10, regrowDays: 3,    sellPrice: 80,  seedPrice: 60,  yield: 1, color: '#9858c0', imageFile: 'grape.png' },

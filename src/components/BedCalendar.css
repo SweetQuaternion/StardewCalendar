@@ -168,6 +168,14 @@
   z-index: 1;
 }
 
+.bed-calendar-day.festival-day {
+  /* nice gold shiny effect */
+  background: linear-gradient(135deg, #f9e79f50, #f1c40f50);
+  /* border-color: #f1c40f50; */
+  color: #2c3e50;
+  text-shadow: 0 0.05em 0.1em rgba(255, 255, 255, 0.5);
+}
+
 .bed-calendar-day-number {
   font-size: 0.8em;
   font-weight: 600;

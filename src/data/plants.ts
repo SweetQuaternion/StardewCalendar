@@ -437,7 +437,7 @@ export const PLANTS: Plant[] = [
   },
   {
     id: "yam",
-    name: "Yam",
+    name: "Süßkartoffel",
     seasons: ["fall"],
     growDays: 10,
     regrowDays: null,

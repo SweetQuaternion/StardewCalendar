@@ -3,6 +3,7 @@ import { calcGrowDays, getHarvestDays, isCarryover, prevSeason } from "../utils/
 import { useState, useEffect } from "react";
 import { useI18n } from "../contexts/I18nContext";
 import "./BedCalendar.css";
+import { getHolidays } from "../data/holidays";
 
 interface Props {
   bed: Bed | null;
@@ -37,7 +38,7 @@ export default function BedCalendar({
   draggedPlantId,
   agriculturist,
 }: Props) {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
   const [showReplaceDialog, setShowReplaceDialog] = useState(false);
   const [pendingPlanting, setPendingPlanting] = useState<{
@@ -426,15 +427,13 @@ export default function BedCalendar({
                 harvestDays.includes(dayNumber) || carryoverHarvestDays.includes(dayNumber);
               const tooltipText = dayStatus
                 ? `${t(`plant.name.${dayStatus.plant.id}`)}: ${dayStatus.type === "growth" ? t("calendar.type.growth") : dayStatus.type === "harvest" ? t("calendar.type.harvest") : t("calendar.type.regrow")}`
-                : language === "en"
-                  ? `${t(`season.${selectedSeason}`)} ${dayNumber}`
-                  : `${dayNumber}. ${t(`season.${selectedSeason}`)}`;
+                : `${getHolidays(selectedSeason, dayNumber)?.type === "festival" ? t(`festival.${getHolidays(selectedSeason, dayNumber)?.name}`) : ""}`;
 
               return (
                 <div
                   key={dayNumber}
                   data-day={dayNumber}
-                  className={`bed-calendar-day ${dragOverDay === dayNumber ? "drag-over" : ""} ${dayStatus ? `planted planted-${dayStatus.type}` : ""} ${isHarvest ? "harvest-day" : ""} ${startingPlanting ? "planting-start-day" : ""}`}
+                  className={`bed-calendar-day ${dragOverDay === dayNumber ? "drag-over" : ""} ${dayStatus ? `planted planted-${dayStatus.type}` : ""} ${isHarvest ? "harvest-day" : ""} ${startingPlanting ? "planting-start-day" : ""} ${getHolidays(selectedSeason, dayNumber)?.type === "festival" ? "festival-day" : ""}`}
                   data-harvest-replant={mixedHarvestInfo ? "true" : undefined}
                   style={
                     mixedHarvestInfo
